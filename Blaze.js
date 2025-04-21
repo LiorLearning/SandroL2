@@ -5,7 +5,7 @@ export default class Blaze {
     constructor(x, patrolStart, patrolEnd, platform = null) {
         this.x = x;
         this.y = platform ? platform.y - 70 : GROUND_LEVEL - 30; // Higher off ground than endermen
-        this.width = 30;
+        this.width = 50;
         this.height = 50;
         this.baseSpeed = 0.6; // Slightly faster than endermen
         this.speed = this.baseSpeed;

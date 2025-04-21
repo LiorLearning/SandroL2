@@ -220,7 +220,7 @@ export var AssetLoader = /*#__PURE__*/ function() {
             // Add stage 2 assets
             'blaze': './assets/level3/blaze.png',
             'blazerod': './assets/level3/blaze_rod.png',
-            'arrow': './assets/level3/blaze_rod.png'
+            'arrow': './assets/level3/arrow.png'
         };
     }
     _create_class(AssetLoader, [
@@ -245,7 +245,8 @@ export var AssetLoader = /*#__PURE__*/ function() {
         {
             key: "getAsset",
             value: function getAsset(name) {
-                return this.assets[name];
+                const asset = this.assets[name];
+                return asset;
             }
         },
         {

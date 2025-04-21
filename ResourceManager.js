@@ -322,6 +322,7 @@ export var ResourceManager = /*#__PURE__*/ function() {
                 // Update crafting panel if it exists
                 if (this.game.craftingPanel) {
                     this.game.craftingPanel.updateResources(this.resources);
+                    this.game.craftingPanel.setStage(2);
                 }
                 
                 return this.resources;

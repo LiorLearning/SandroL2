@@ -576,33 +576,15 @@ var World = /*#__PURE__*/ function() {
                         var screenX1 = item.x - cameraOffset;
                         // Only draw if visible on screen
                         if (screenX1 > -item.width && screenX1 < CANVAS_WIDTH) {
+                            // Debug for blazerod items
+                            if (item.type === 'blazerod') {
+                                console.log('Found blazerod item to render at:', screenX1, item.y);
+                            }
+                            
                             if (item.type === 'gold nugget') {
                                 this.drawGoldNugget(ctx, screenX1, item.y);
-                            } else if (item.type === 'gold block') {
-                                // Draw gold block texture with proper Minecraft-style shading
-                                var goldTexture = this.assetLoader.getAsset('gold block');
-                                var blockWidth = 40;
-                                var blockHeight = 40;
-                                if (goldTexture) {
-                                    // Main block
-                                    ctx.drawImage(goldTexture, screenX1, item.y, blockWidth, blockHeight);
-                                    // Top highlight
-                                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-                                    ctx.fillRect(screenX1, item.y, blockWidth, 5);
-                                    // Side shadow
-                                    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-                                    ctx.fillRect(screenX1, item.y + 5, 5, blockHeight - 5);
-                                } else {
-                                    // Fallback gold block
-                                    ctx.fillStyle = '#FFD700';
-                                    ctx.fillRect(screenX1, item.y, blockWidth, blockHeight);
-                                    // Top highlight
-                                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-                                    ctx.fillRect(screenX1, item.y, blockWidth, 5);
-                                    // Side shadow
-                                    ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-                                    ctx.fillRect(screenX1, item.y + 5, 5, blockHeight - 5);
-                                }
+                            } else if (item.type === 'blazerod') {
+                                this.drawBlazeRod(ctx, screenX1, item.y);
                             } else if (item.type === 'enderpearl') {
                                 // Draw enderpearl with floating animation
                                 const floatOffset = Math.sin(Date.now() / 400) * 3;
@@ -1095,26 +1077,28 @@ var World = /*#__PURE__*/ function() {
         {
             key: "drawBlazeRod",
             value: function drawBlazeRod(ctx, x, y) {
-                const screenX = x - this.cameraOffset;
+                const rodSize = 40;
+                // Debug statement to track assets
+                const blazeRodTexture = this.assetLoader.getAsset('blazerod');
                 
-                // Skip if off screen
-                if (screenX < -20 || screenX > ctx.canvas.width + 20) {
-                    return;
-                }
-                
-                ctx.save();
-                
-                // Get blaze rod image if available
-                const blazeRodImage = this.assetLoader?.getAsset('blazerod');
-                
-                if (blazeRodImage) {
-                    ctx.drawImage(blazeRodImage, screenX - 10, y - 10, 20, 20);
+                if (blazeRodTexture) {
+                    ctx.drawImage(blazeRodTexture, x, y, rodSize, rodSize);
+                    
+                    // Add a subtle glow effect
+                    ctx.save();
+                    ctx.globalAlpha = 0.3;
+                    ctx.shadowColor = '#FFD700';
+                    ctx.shadowBlur = 10;
+                    ctx.drawImage(blazeRodTexture, x, y, rodSize, rodSize);
+                    ctx.restore();
                 } else {
-                    // Fallback rendering if no image is available
+                    // Fallback if texture isn't loaded
+                    ctx.save();
+                    
                     // Draw glowing rod
                     const glowGradient = ctx.createRadialGradient(
-                        screenX, y, 0,
-                        screenX, y, 15
+                        x + rodSize/2, y + rodSize/2, 0,
+                        x + rodSize/2, y + rodSize/2, rodSize
                     );
                     
                     glowGradient.addColorStop(0, 'rgba(255, 200, 0, 0.7)');
@@ -1123,35 +1107,36 @@ var World = /*#__PURE__*/ function() {
                     ctx.fillStyle = glowGradient;
                     ctx.globalCompositeOperation = 'lighter';
                     ctx.beginPath();
-                    ctx.arc(screenX, y, 15, 0, Math.PI * 2);
+                    ctx.arc(x + rodSize/2, y + rodSize/2, rodSize, 0, Math.PI * 2);
                     ctx.fill();
                     
                     // Draw rod center
                     ctx.fillStyle = '#ffaa00';
                     ctx.beginPath();
-                    ctx.rect(screenX - 7, y - 2, 14, 4);
+                    ctx.rect(x + 3, y + rodSize/2 - 2, 14, 4);
                     ctx.fill();
                     
                     ctx.globalCompositeOperation = 'source-over';
+                    ctx.restore();
                 }
                 
-                // Add floating effect
+                // Add floating particles effect
                 if (Math.random() < 0.1) {
+                    ctx.save();
                     ctx.globalCompositeOperation = 'lighter';
                     ctx.fillStyle = 'rgba(255, 200, 0, 0.3)';
                     ctx.beginPath();
                     ctx.arc(
-                        screenX + (Math.random() - 0.5) * 10, 
-                        y + (Math.random() - 0.5) * 10, 
+                        x + rodSize/2 + (Math.random() - 0.5) * 10, 
+                        y + rodSize/2 + (Math.random() - 0.5) * 10, 
                         3 + Math.random() * 2, 
                         0, 
                         Math.PI * 2
                     );
                     ctx.fill();
                     ctx.globalCompositeOperation = 'source-over';
+                    ctx.restore();
                 }
-                
-                ctx.restore();
             }
         },
         {

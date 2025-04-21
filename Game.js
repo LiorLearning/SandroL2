@@ -926,14 +926,16 @@ var Game = /*#__PURE__*/ function() {
         {
             key: "spawnBlazeRod",
             value: function spawnBlazeRod(x, y) {
+                console.log('Spawning blaze rod at:', x, y);
                 // Add a blaze rod item to the world at the position where the blaze was hit
-                this.world.addItem({
+                const item = this.world.addItem({
                     type: 'blazerod',
                     x: x,
-                    y: y,
+                    y: y + 30,
                     width: 20,
                     height: 20
                 });
+                console.log('Spawned blaze rod item:', item);
                 
                 // Show message about dropped item
                 this.floatingTexts.push(new FloatingText("Blaze Rod dropped!", x, y - 40));
@@ -1674,6 +1676,9 @@ var Game = /*#__PURE__*/ function() {
                     
                     // Set flag to prevent repeated triggers
                     this.enteredPortal = true;
+                    
+                    // Remove the portal
+                    this.portal = null;
                     
                     // Replace endermen with blazes
                     this.replaceEndermanWithBlazes();

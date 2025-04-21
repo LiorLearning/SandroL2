@@ -9,12 +9,21 @@ export class CraftingPanel {
         this.x = CANVAS_WIDTH - this.width - 10;
         this.y = 10;
         
+        // Current game stage
+        this.isStage2 = false;
+        
         // Resource requirements
         this.requirements = {
-            crossbow: 1,
-            shield: 1,
-            obsidian: 4,
-            enderpearl: 2
+            stage1: {
+                crossbow: 1,
+                shield: 1,
+                obsidian: 4,
+                enderpearl: 2
+            },
+            stage2: {
+                blazerod: 3,
+                enderpearl: 2
+            }
         };
         
         // Add craft button
@@ -39,6 +48,10 @@ export class CraftingPanel {
     updateResources(resources) {
         this.resources = resources;
     }
+    
+    setStage(stage) {
+        this.isStage2 = stage === 2;
+    }
 
     highlightResource(resourceType) {
         this.highlightedResource = resourceType;
@@ -57,23 +70,29 @@ export class CraftingPanel {
                 mouseY >= this.craftButton.y && 
                 mouseY <= this.craftButton.y + this.craftButton.height) {
                 
-                // Create portal
-                this.createPortal();
+                if (this.isStage2) {
+                    this.createEndPortal();
+                } else {
+                    this.createPortal();
+                }
             }
         }
     }
 
     createPortal() {
+        // Current requirements for stage 1
+        const reqs = this.requirements.stage1;
+        
         // Check if we have enough resources
         if (
-            (this.resources.crossbow || 0) >= this.requirements.crossbow &&
-            (this.resources.shield || 0) >= this.requirements.shield &&
-            (this.resources.obsidian || 0) >= this.requirements.obsidian &&
-            (this.resources.enderpearl || 0) >= this.requirements.enderpearl
+            (this.resources.crossbow || 0) >= reqs.crossbow &&
+            (this.resources.shield || 0) >= reqs.shield &&
+            (this.resources.obsidian || 0) >= reqs.obsidian &&
+            (this.resources.enderpearl || 0) >= reqs.enderpearl
         ) {
             // Use resources
-            this.resources.obsidian -= this.requirements.obsidian;
-            this.resources.enderpearl -= this.requirements.enderpearl;
+            this.resources.obsidian -= reqs.obsidian;
+            this.resources.enderpearl -= reqs.enderpearl;
             
             // Create portal in front of player
             const portalX = this.game.player.x + 150;
@@ -125,6 +144,54 @@ export class CraftingPanel {
             this.craftButton.visible = false;
         }
     }
+    
+    createEndPortal() {
+        // Current requirements for stage 2
+        const reqs = this.requirements.stage2;
+        
+        // Check if we have enough resources
+        if (
+            (this.resources.blazerod || 0) >= reqs.blazerod &&
+            (this.resources.enderpearl || 0) >= reqs.enderpearl
+        ) {
+            // Use resources
+            this.resources.blazerod -= reqs.blazerod;
+            this.resources.enderpearl -= reqs.enderpearl;
+            
+            // Create end portal in front of player
+            const portalX = this.game.player.x + 150;
+            const portalY = this.game.player.y - 100;
+            
+            // Create end portal object in the game
+            if (typeof this.game.createEndPortal === 'function') {
+                this.game.createEndPortal(portalX, portalY);
+                console.log("End Portal created at", portalX, portalY);
+            }
+            
+            // Play portal creation sound
+            this.game.audioManager.play('collect', 1.5);
+            
+            // Add floating text message
+            this.game.floatingTexts.push(
+                new this.game.floatingTextClass(
+                    "End Portal Created!",
+                    portalX,
+                    portalY - 50,
+                    3000, // longer duration
+                    { color: '#00FFFF' } // cyan color
+                )
+            );
+            
+            // Apply screen shake for effect
+            this.game.applyScreenShake(10);
+            
+            // Update resources display
+            this.updateResources(this.resources);
+            
+            // Hide craft button after portal is created
+            this.craftButton.visible = false;
+        }
+    }
 
     render(ctx) {
         // Draw panel background
@@ -158,7 +225,7 @@ export class CraftingPanel {
         ctx.fillStyle = '#FFD700'; // Gold color for title
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('Required Resources', this.x + this.width / 2, this.y + 25);
+        ctx.fillText(this.isStage2 ? 'Nether Resources' : 'Required Resources', this.x + this.width / 2, this.y + 25);
 
         // Draw divider line
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
@@ -168,17 +235,32 @@ export class CraftingPanel {
         ctx.stroke();
 
         // Draw resource requirements with status indicators
-        this.renderResourceRequirement(ctx, 'Crossbow', 'crossbow', 1, 70);
-        this.renderResourceRequirement(ctx, 'Shield', 'shield', 1, 100);
-        this.renderResourceRequirement(ctx, 'Obsidian', 'obsidian', 4, 130);
-        this.renderResourceRequirement(ctx, 'Ender Pearl', 'enderpearl', 2, 160);
+        if (this.isStage2) {
+            // Stage 2 resources
+            this.renderResourceRequirement(ctx, 'Blaze Rod', 'blazerod', this.requirements.stage2.blazerod, 70);
+            this.renderResourceRequirement(ctx, 'Ender Pearl', 'enderpearl', this.requirements.stage2.enderpearl, 100);
+        } else {
+            // Stage 1 resources
+            this.renderResourceRequirement(ctx, 'Crossbow', 'crossbow', this.requirements.stage1.crossbow, 70);
+            this.renderResourceRequirement(ctx, 'Shield', 'shield', this.requirements.stage1.shield, 100);
+            this.renderResourceRequirement(ctx, 'Obsidian', 'obsidian', this.requirements.stage1.obsidian, 130);
+            this.renderResourceRequirement(ctx, 'Ender Pearl', 'enderpearl', this.requirements.stage1.enderpearl, 160);
+        }
 
         // Draw completion status
-        const allRequirementsMet = 
-            (this.resources.crossbow || 0) >= this.requirements.crossbow &&
-            (this.resources.shield || 0) >= this.requirements.shield &&
-            (this.resources.obsidian || 0) >= this.requirements.obsidian &&
-            (this.resources.enderpearl || 0) >= this.requirements.enderpearl;
+        let allRequirementsMet;
+        
+        if (this.isStage2) {
+            allRequirementsMet = 
+                (this.resources.blazerod || 0) >= this.requirements.stage2.blazerod &&
+                (this.resources.enderpearl || 0) >= this.requirements.stage2.enderpearl;
+        } else {
+            allRequirementsMet = 
+                (this.resources.crossbow || 0) >= this.requirements.stage1.crossbow &&
+                (this.resources.shield || 0) >= this.requirements.stage1.shield &&
+                (this.resources.obsidian || 0) >= this.requirements.stage1.obsidian &&
+                (this.resources.enderpearl || 0) >= this.requirements.stage1.enderpearl;
+        }
 
         ctx.fillStyle = allRequirementsMet ? '#4CAF50' : '#FFCC33';
         ctx.font = 'bold 14px Arial';
@@ -190,10 +272,12 @@ export class CraftingPanel {
         );
         
         // Show craft button if all requirements are met
-        this.craftButton.visible = allRequirementsMet && !this.game.portal;
+        const portalExists = this.isStage2 ? this.game.endPortal : this.game.portal;
+        this.craftButton.visible = allRequirementsMet && !portalExists;
+        
         if (this.craftButton.visible) {
             // Draw craft button
-            ctx.fillStyle = '#4CAF50';
+            ctx.fillStyle = this.isStage2 ? '#00BFFF' : '#4CAF50';
             ctx.fillRect(this.craftButton.x, this.craftButton.y, this.craftButton.width, this.craftButton.height);
             
             // Button border
@@ -206,7 +290,11 @@ export class CraftingPanel {
             ctx.font = 'bold 16px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('Create Portal', this.craftButton.x + this.craftButton.width / 2, this.craftButton.y + this.craftButton.height / 2);
+            ctx.fillText(
+                this.isStage2 ? 'Create End Portal' : 'Create Portal', 
+                this.craftButton.x + this.craftButton.width / 2, 
+                this.craftButton.y + this.craftButton.height / 2
+            );
         }
         
         // Update highlight timer if needed
