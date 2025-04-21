@@ -82,6 +82,33 @@ var Player = /*#__PURE__*/ function() {
             }
         },
         {
+            key: "takeDamage",
+            value: function takeDamage(amount) {
+                if (!this.isImmune) {
+                    // Initialize health property if it doesn't exist
+                    if (this.health === undefined) {
+                        this.health = 5;
+                    }
+                    
+                    // Reduce health by the damage amount
+                    this.health -= amount;
+                    
+                    // Trigger hit effect
+                    this.isHit = true;
+                    this.hitTimer = 0;
+                    this.showFlash = true;
+                }
+            }
+        },
+        {
+            key: "makeImmune",
+            value: function makeImmune(duration) {
+                this.isImmune = true;
+                this.immunityTimer = 0;
+                this.immunityDuration = duration || this.immunityDuration;
+            }
+        },
+        {
             key: "jump",
             value: function jump() {
                 // First jump from ground

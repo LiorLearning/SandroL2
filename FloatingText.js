@@ -19,27 +19,40 @@ function _create_class(Constructor, protoProps, staticProps) {
 }
 export var FloatingText = /*#__PURE__*/ function() {
     "use strict";
-    function FloatingText(text, x, y) {
+    function FloatingText(text, x, y, color, lifespan, centered) {
         _class_call_check(this, FloatingText);
-        this.text = text;
+        this.text = text || '';
         this.x = x;
         this.y = y;
         this.alpha = 1;
         this.scale = 1;
-        this.lifespan = 1500; // 1.5 seconds in milliseconds
+        this.lifespan = lifespan || 1500; // Use provided lifespan or default to 1.5 seconds
         this.elapsed = 0;
         this.velocityY = -1.5; // Move upward
-        // Determine color based on text content
-        if (this.text.includes('sticks')) {
-            this.color = '#8B4513'; // Brown for sticks
-        } else if (this.text.includes('strings')) {
-            this.color = '#DDDDDD'; // Light gray for strings
-        } else if (this.text.includes('flint')) {
-            this.color = '#777777'; // Dark gray for flint
-        } else if (this.text.includes('feather')) {
-            this.color = '#F5F5F5'; // White for feather
+        this.centered = centered || false;
+        
+        // Use the color parameter if provided
+        if (color) {
+            this.color = color;
         } else {
-            this.color = 'white'; // Default color
+            // Determine color based on text content if it's a string
+            if (typeof this.text === 'string') {
+                if (this.text.includes('sticks')) {
+                    this.color = '#8B4513'; // Brown for sticks
+                } else if (this.text.includes('strings')) {
+                    this.color = '#DDDDDD'; // Light gray for strings
+                } else if (this.text.includes('flint')) {
+                    this.color = '#777777'; // Dark gray for flint
+                } else if (this.text.includes('feather')) {
+                    this.color = '#F5F5F5'; // White for feather
+                } else if (this.text.includes('gold')) {
+                    this.color = '#FFD700'; // Gold for gold nuggets
+                } else {
+                    this.color = 'white'; // Default color
+                }
+            } else {
+                this.color = 'white'; // Default if text isn't a string
+            }
         }
     }
     _create_class(FloatingText, [

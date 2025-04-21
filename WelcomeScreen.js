@@ -1,5 +1,4 @@
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GAME_STATE } from './constants.js';
-import Enderman from './Endermen.js';
 
 class WelcomeScreen {
     constructor(game, assetLoader) {
@@ -61,9 +60,6 @@ class WelcomeScreen {
         if (this.isPointInButton(mouseX, mouseY, this.startButton)) {
             this.game.gameState = GAME_STATE.PLAYING;
             this.game.audioManager.play('collect', 1.0);
-            
-            // Create endermen when game starts
-            this.createEndermen();
         }
     }
 
@@ -77,9 +73,6 @@ class WelcomeScreen {
         if (this.isPointInButton(touchX, touchY, this.startButton)) {
             this.game.gameState = GAME_STATE.PLAYING;
             this.game.audioManager.play('collect', 1.0);
-            
-            // Create endermen when game starts
-            this.createEndermen();
         }
     }
 
@@ -101,6 +94,9 @@ class WelcomeScreen {
         
         // Render floating End particles
         this.renderEndParticles(ctx);
+        
+        // Render decorative elements (instead of endermen)
+        this.renderDecorativeElements(ctx);
 
         // Title with Ender Eye glow effect
         const time = Date.now() / 1000;
@@ -210,23 +206,36 @@ class WelcomeScreen {
             ctx.fill();
         }
     }
-
-    createEndermen() {
-        const platforms = this.game.world.platforms;
+    
+    // Render additional decorative elements (replacing endermen with more end particles)
+    renderDecorativeElements(ctx) {
+        const time = Date.now() / 1000;
         
-        // Clear any existing endermen
-        this.game.endermen = [];
-        
-        // Create endermen on platforms if available
-        if (platforms && platforms.length >= 3) {
-            this.game.endermen.push(new Enderman(platforms[0].x + 50, platforms[0].x + 20, platforms[0].x + platforms[0].width - 20, platforms[0]));
-            this.game.endermen.push(new Enderman(platforms[1].x + 50, platforms[1].x + 20, platforms[1].x + platforms[1].width - 20, platforms[1]));
-            this.game.endermen.push(new Enderman(platforms[2].x + 50, platforms[2].x + 20, platforms[2].x + platforms[2].width - 20, platforms[2]));
-        } else {
-            // Fallback if platforms aren't available
-            this.game.endermen.push(new Enderman(300, 200, 400));
-            this.game.endermen.push(new Enderman(600, 500, 700));
-            this.game.endermen.push(new Enderman(900, 800, 1000));
+        // Create additional decorative elements - larger purple crystals
+        for (let i = 0; i < 5; i++) {
+            const x = (Math.sin(time * 0.2 + i * 1.5) * 0.4 + 0.5) * CANVAS_WIDTH;
+            const y = ((Math.sin(time * 0.1 + i * 0.7) * 0.3 + 0.5) * CANVAS_HEIGHT);
+            
+            // Draw purple crystal
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(Math.sin(time * 0.5 + i) * 0.1);
+            
+            // Crystal glow
+            ctx.shadowColor = '#9966ff';
+            ctx.shadowBlur = 15;
+            
+            // Crystal shape
+            ctx.fillStyle = '#9966ff';
+            ctx.beginPath();
+            ctx.moveTo(0, -15);
+            ctx.lineTo(8, 5);
+            ctx.lineTo(0, 25);
+            ctx.lineTo(-8, 5);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.restore();
         }
     }
 }

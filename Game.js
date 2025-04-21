@@ -291,6 +291,10 @@ var Game = /*#__PURE__*/ function() {
                                 _this.world = new World(_this.assetLoader);
                                 _this.player = new Player(100, GROUND_LEVEL);
                                 _this.player.game = _this; // Add reference to game for asset access
+                                
+                                // Set the game reference on the world object for endermen updates
+                                _this.world.game = _this;
+                                
                                 _this.craftingPanel = new CraftingPanel(_this.resources, _this);
                                 _this.quizPanel = new QuizPanel(_this);
                                 _this.floatingTexts = [];
@@ -301,16 +305,16 @@ var Game = /*#__PURE__*/ function() {
                                 // Initialize endermen as empty array - will populate when game starts
                                 _this.endermen = [];
                                 
-                                if (platforms && platforms.length >= 3) {
-                                    _this.endermen.push(new Enderman(platforms[0].x + 50, platforms[0].x + 20, platforms[0].x + platforms[0].width - 20, platforms[0]));
-                                    _this.endermen.push(new Enderman(platforms[1].x + 50, platforms[1].x + 20, platforms[1].x + platforms[1].width - 20, platforms[1]));
-                                    _this.endermen.push(new Enderman(platforms[2].x + 50, platforms[2].x + 20, platforms[2].x + platforms[2].width - 20, platforms[2]));
-                                } else {
-                                    // Fallback if platforms aren't available
-                                    _this.endermen.push(new Enderman(300, 200, 400));
-                                    _this.endermen.push(new Enderman(600, 500, 700));
-                                    _this.endermen.push(new Enderman(900, 800, 1000));
-                                }
+                                // if (platforms && platforms.length >= 3) {
+                                //     _this.endermen.push(new Enderman(platforms[0].x + 50, platforms[0].x + 20, platforms[0].x + platforms[0].width - 20, platforms[0]));
+                                //     _this.endermen.push(new Enderman(platforms[1].x + 50, platforms[1].x + 20, platforms[1].x + platforms[1].width - 20, platforms[1]));
+                                //     _this.endermen.push(new Enderman(platforms[2].x + 50, platforms[2].x + 20, platforms[2].x + platforms[2].width - 20, platforms[2]));
+                                // } else {
+                                //     // Fallback if platforms aren't available
+                                //     _this.endermen.push(new Enderman(300, 200, 400));
+                                //     _this.endermen.push(new Enderman(600, 500, 700));
+                                //     _this.endermen.push(new Enderman(900, 800, 1000));
+                                // }
                                 
                                 _this.gameState = GAME_STATE.WELCOME; // Start with welcome screen
                                 _this.isGameActive = false; // For backward compatibility
@@ -527,10 +531,10 @@ var Game = /*#__PURE__*/ function() {
                 this.floatingTexts.push(new FloatingText(`+${amount} ${displayType}`, x, y));
                 this.audioManager.play('collect', 0.7 * (0.9 + Math.random() * 0.2));
                 
-                // Update zombie speeds if gold was collected
-                if (resourceType === 'goldNuggets') {
-                    this.world.zombies.forEach(zombie => {
-                        zombie.updateSpeed(this.resources.goldNuggets || 0);
+                // Update enderman speeds if gold was collected
+                if (resourceType === 'gold nugget') {
+                    this.world.endermen.forEach(enderman => {
+                        enderman.updateSpeed(this.resources.goldNuggets || 0);
                     });
                 }
                 
@@ -641,7 +645,7 @@ var Game = /*#__PURE__*/ function() {
 
                 if (isPlaying) {
                     // Process game updates in logical order
-                    this.world.updateZombies(deltaTime);
+                    this.world.updateEndermen(deltaTime);
                     this.world.updateMiningSpots(deltaTime);
                     this.player.update(deltaTime, this.world);
 
@@ -670,20 +674,17 @@ var Game = /*#__PURE__*/ function() {
                     this.touchControls.update();
                     this.updateFloatingTexts(deltaTime);
 
-                    // Zombie collision check (only if player is vulnerable and doesn't have golden boots)
+                    // Enderman collision check (only if player is vulnerable and doesn't have golden boots)
                     if (!this.player.isImmune && !this.player.hasGoldenBoots) {
-                        const collidedZombie = this.world.checkZombieCollisions(this.player);
-                        if (collidedZombie) {
-                            this.handleZombieCollision();
+                        const collidedEnderman = this.world.checkEndermanCollisions(this.player);
+                        if (collidedEnderman) {
+                            this.handleEndermanCollision();
                         }
                         // Check for lava collision
                         if (this.checkLavaCollision()) {
                             this.handleLavaCollision();
                         }
                     }
-
-                    // Update endermen
-                    this.updateEndermen(deltaTime);
                     
                     // Check portal collision
                     this.checkPortalCollision();
@@ -859,8 +860,8 @@ var Game = /*#__PURE__*/ function() {
                     if (this.gameState === GAME_STATE.QUIZ) {
                         this.quizPanel.render(this.ctx);
                     }
-                    // Render zombie speed info in the top left corner
-                    this.renderZombieSpeed();
+                    // Render enderman speed info in the top left corner
+                    this.renderEndermanSpeed();
                 }
                 // Game state specific rendering
                 switch(this.gameState){
@@ -982,13 +983,13 @@ var Game = /*#__PURE__*/ function() {
             }
         },
         {
-            key: "renderZombieSpeed",
-            value: function renderZombieSpeed() {
-                // Display zombie speed in top left corner
+            key: "renderEndermanSpeed",
+            value: function renderEndermanSpeed() {
+                // Display enderman speed in top left corner
                 const baseSpeed = 0.5;
                 let currentSpeed = baseSpeed;
                 
-                // Calculate current speed based on gold collected (same formula as in Zombie.js)
+                // Calculate current speed based on gold collected (same formula as in Enderman.js)
                 if (this.resources && this.resources.goldNuggets !== undefined) {
                     const goldNuggets = this.resources.goldNuggets;
                     const speedIncreases = Math.floor(goldNuggets / 6);
@@ -998,7 +999,7 @@ var Game = /*#__PURE__*/ function() {
                 // Draw background box
                 this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                 this.ctx.fillRect(10, 10, 170, 30);
-                this.ctx.strokeStyle = '#FF5555';
+                this.ctx.strokeStyle = '#AA55FF'; // Purple for enderman
                 this.ctx.lineWidth = 2;
                 this.ctx.strokeRect(10, 10, 170, 30);
                 
@@ -1007,7 +1008,7 @@ var Game = /*#__PURE__*/ function() {
                 this.ctx.font = '16px Arial';
                 this.ctx.textAlign = 'left';
                 this.ctx.textBaseline = 'middle';
-                this.ctx.fillText(`Zombie Speed: ${currentSpeed.toFixed(1)}`, 20, 25);
+                this.ctx.fillText(`Enderman Speed: ${currentSpeed.toFixed(1)}`, 20, 25);
             }
         },
         {
@@ -1040,47 +1041,54 @@ var Game = /*#__PURE__*/ function() {
             }
         },
         {
-            key: "handleZombieCollision",
-            value: function handleZombieCollision() {
-                if (this.player.hasGoldenBoots) return; // No effect if player has golden boots
+            key: "handleEndermanCollision",
+            value: function handleEndermanCollision() {
+                if (this.player.isImmune) return; // Skip if player is already immune
                 
-                // Reset player position slightly back to avoid being immediately hit again
-                this.player.x -= 60 * (this.player.facingRight ? 1 : -1);
-
-                // Check if player has any resources to lose
-                let availableResources = [];
-                for (let type in this.resources) {
-                    if (this.resources[type] >= 5) {
-                        availableResources.push(type);
-                    }
-                }
-
-                if (availableResources.length > 0) {
-                    // Choose a random resource to reduce
-                    const resourceType = availableResources[Math.floor(Math.random() * availableResources.length)];
-                    this.resources[resourceType] -= 5;
-                    
-                    // Add visual feedback about resource loss
-                    this.floatingTexts.push(new FloatingText(`-5 ${resourceType}!`, this.player.x, this.player.y - 40));
-                }
-
-                // Add some visual feedback
-                this.floatingTexts.push(new FloatingText("Ouch!", this.player.x, this.player.y - 20));
+                // Take damage
+                this.player.takeDamage(1);
                 
-                // Play hurt sound effect
-                this.audioManager.play('hurt', 0.7);
+                // Apply knockback in opposite direction to enderman
+                this.player.velocityX = this.player.x > this.cameraOffset + CANVAS_WIDTH / 2 ? -5 : 5;
+                this.player.velocityY = -5; // Add upward velocity (jump)
                 
-                // Apply screen shake effect
+                // Make player immune for 1 second
+                this.player.makeImmune(1000);
+                
+                // Apply screen shake
                 this.applyScreenShake(5);
                 
-                // Visual indication of being hit
-                this.player.isHit = true;
-                this.player.isImmune = true;
-                this.player.immunityTimer = 0;
+                // Show damage text
+                const floatingText = new this.floatingTextClass(
+                    this.player.x + this.player.width / 2, 
+                    this.player.y - 20,
+                    'Ouch!',
+                    '#FF0000',
+                    1500
+                );
+                this.floatingTexts.push(floatingText);
                 
-                setTimeout(() => {
-                    this.player.isHit = false;
-                }, 500);
+                // Play hurt sound
+                this.audioManager.play('hurt', 0.6);
+                
+                // Check if player is out of health
+                if (this.player.health <= 0) {
+                    // Reset player position
+                    this.player.x = 100;
+                    this.player.y = 300;
+                    this.player.health = 5;
+                    
+                    // Show game over text
+                    const gameOverText = new this.floatingTextClass(
+                        CANVAS_WIDTH / 2,
+                        CANVAS_HEIGHT / 2,
+                        'Game Over - Try Again!',
+                        '#FF0000',
+                        2000,
+                        true
+                    );
+                    this.floatingTexts.push(gameOverText);
+                }
             }
         },
         {
@@ -1357,63 +1365,6 @@ var Game = /*#__PURE__*/ function() {
                     this.floatingTexts.push(new FloatingText('Level Complete!', this.player.x, this.player.y - 60));
                     this.applyScreenShake(3);
                 }
-            }
-        },
-        {
-            key: "handleEndermanCollision",
-            value: function handleEndermanCollision() {
-                if (this.player.hasGoldenBoots) return; // No effect if player has golden boots
-                
-                // Reset player position slightly back to avoid being immediately hit again
-                this.player.x -= 60 * (this.player.facingRight ? 1 : -1);
-
-                // Check if player has gold nuggets to lose
-                if (this.resources.goldNuggets >= 5) {
-                    this.resources.goldNuggets -= 5;
-                    // Add visual feedback about gold loss
-                    this.floatingTexts.push(new FloatingText("-5 gold nuggets!", this.player.x, this.player.y - 40));
-                }
-
-                // Add some visual feedback
-                this.floatingTexts.push(new FloatingText("Ouch!", this.player.x, this.player.y - 20));
-                
-                // Play hurt sound effect
-                this.audioManager.play('hurt', 0.7);
-                
-                // Apply screen shake effect
-                this.applyScreenShake(5);
-                
-                // Visual indication of being hit
-                this.player.isHit = true;
-                this.player.isImmune = true;
-                this.player.immunityTimer = 0;
-                
-                setTimeout(() => {
-                    this.player.isHit = false;
-                }, 500);
-            }
-        },
-        {
-            key: "updateEndermen",
-            value: function updateEndermen(deltaTime) {
-                if (!this.endermen) return;
-                
-                this.endermen.forEach(enderman => {
-                    // Update enderman using its built-in update method
-                    enderman.update(deltaTime);
-                    
-                    // Check collision with player only if not wearing golden boots
-                    if (!this.player.hasGoldenBoots && !this.player.isImmune) {
-                        if (enderman.checkCollision(this.player)) {
-                            this.handleEndermanCollision();
-                        }
-                    }
-                    
-                    // Update enderman speed based on gold nuggets collected
-                    if (this.resources && this.resources.goldNuggets) {
-                        enderman.updateSpeed(this.resources.goldNuggets);
-                    }
-                });
             }
         },
         {

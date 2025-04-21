@@ -20,7 +20,7 @@ function _create_class(Constructor, protoProps, staticProps) {
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_LEVEL } from './constants.js';
 import { isColliding } from './utils.js';
 import Platform from './Platform.js';
-import Zombie from './Zombie.js';
+import Enderman from './Endermen.js';
 import MiningSpot from './MiningSpot.js';
 import { RESOURCE_TYPES } from './constants.js';
 var World = /*#__PURE__*/ function() {
@@ -31,7 +31,7 @@ var World = /*#__PURE__*/ function() {
         this.levelWidth = 4000; // Extended level width for more platforming
         this.items = [];
         this.platforms = [];
-        this.zombies = []; // Array to hold zombie enemies
+        this.endermen = []; // Array to hold enderman enemies
         this.miningSpots = []; // Array to hold mining spots
         this.cameraOffset = 0; // Add camera offset property
         this.generateLevel();
@@ -51,8 +51,8 @@ var World = /*#__PURE__*/ function() {
                 this.generatePlatforms();
                 // Generate resources
                 this.generateResources();
-                // Generate zombies
-                this.generateZombies();
+                // Generate endermen
+                this.generateEndermen();
                 this.generateLavaPits();
             }
         },
@@ -174,11 +174,11 @@ var World = /*#__PURE__*/ function() {
                     );
                     this.miningSpots.push(miningSpot);
 
-                    // Add a zombie to guard this mining spot if it doesn't already have one
-                    // Check if there's already a zombie guarding this platform
+                    // Add an enderman to guard this mining spot if it doesn't already have one
+                    // Check if there's already an enderman guarding this platform
                     let hasGuard = false;
-                    for (const zombie of this.zombies) {
-                        if (zombie.platform === platform) {
+                    for (const enderman of this.endermen) {
+                        if (enderman.platform === platform) {
                             hasGuard = true;
                             break;
                         }
@@ -188,7 +188,7 @@ var World = /*#__PURE__*/ function() {
                     if (!hasGuard) {
                         const patrolStart = platform.x + 20;
                         const patrolEnd = platform.x + platform.width - 20;
-                        this.zombies.push(new Zombie(
+                        this.endermen.push(new Enderman(
                             platform.x + platform.width / 2,
                             patrolStart,
                             patrolEnd,
@@ -199,11 +199,11 @@ var World = /*#__PURE__*/ function() {
             }
         },
         {
-            key: "generateZombies",
-            value: function generateZombies() {
+            key: "generateEndermen",
+            value: function generateEndermen() {
                 var _this = this;
-                // Add zombies at different locations along the level
-                var zombiePositions = [
+                // Add endermen at different locations along the level
+                var endermenPositions = [
                     {
                         x: 400,
                         patrolStart: 300,
@@ -235,13 +235,13 @@ var World = /*#__PURE__*/ function() {
                         patrolEnd: 3550
                     }
                 ];
-                // Create zombie instances on ground level
-                zombiePositions.forEach(function(param) {
+                // Create enderman instances on ground level
+                endermenPositions.forEach(function(param) {
                     var x = param.x, patrolStart = param.patrolStart, patrolEnd = param.patrolEnd;
-                    _this.zombies.push(new Zombie(x, patrolStart, patrolEnd));
+                    _this.endermen.push(new Enderman(x, patrolStart, patrolEnd));
                 });
-                // Add zombies on platforms to make them more challenging
-                var platformZombies = [
+                // Add endermen on platforms to make them more challenging
+                var platformEndermen = [
                     {
                         platformIndex: 1,
                         patrolOffset: 20
@@ -263,16 +263,27 @@ var World = /*#__PURE__*/ function() {
                         patrolOffset: 20
                     }
                 ];
-                platformZombies.forEach(function(param) {
+                platformEndermen.forEach(function(param) {
                     var platformIndex = param.platformIndex, patrolOffset = param.patrolOffset;
                     if (platformIndex < _this.platforms.length) {
                         var platform = _this.platforms[platformIndex];
                         var x = platform.x + platform.width / 2;
                         var patrolStart = platform.x + patrolOffset;
                         var patrolEnd = platform.x + platform.width - patrolOffset;
-                        _this.zombies.push(new Zombie(x, patrolStart, patrolEnd, platform));
+                        _this.endermen.push(new Enderman(x, patrolStart, patrolEnd, platform));
                     }
                 });
+            }
+        },
+        {
+            key: "checkEndermanCollisions", 
+            value: function checkEndermanCollisions(player) {
+                for (const enderman of this.endermen) {
+                    if (enderman.checkCollision(player)) {
+                        return enderman;
+                    }
+                }
+                return null;
             }
         },
         {
@@ -603,10 +614,10 @@ var World = /*#__PURE__*/ function() {
                 }
                 var _iteratorNormalCompletion4 = true, _didIteratorError4 = false, _iteratorError4 = undefined;
                 try {
-                    // Render zombies
-                    for(var _iterator4 = this.zombies[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true){
-                        var zombie = _step4.value;
-                        zombie.render(ctx, cameraOffset, this.assetLoader);
+                    // Render endermen
+                    for(var _iterator4 = this.endermen[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true){
+                        var enderman = _step4.value;
+                        enderman.render(ctx, cameraOffset, this.assetLoader);
                     }
                 } catch (err) {
                     _didIteratorError4 = true;
@@ -953,6 +964,24 @@ var World = /*#__PURE__*/ function() {
                 }
                 
                 return false;
+            }
+        },
+        {
+            key: "updateEndermen",
+            value: function updateEndermen(deltaTime) {
+                // Set game reference for accessing resources
+                if (this.game) {
+                    // Update all endermen
+                    for (let i = 0; i < this.endermen.length; i++) {
+                        const enderman = this.endermen[i];
+                        enderman.update(deltaTime);
+                        
+                        // Update speed based on collected gold nuggets
+                        if (this.game.resources && this.game.resources.goldNuggets !== undefined) {
+                            enderman.updateSpeed(this.game.resources.goldNuggets);
+                        }
+                    }
+                }
             }
         }
     ]);

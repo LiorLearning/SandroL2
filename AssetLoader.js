@@ -200,7 +200,6 @@ export var AssetLoader = /*#__PURE__*/ function() {
             'flint': 'https://play.rosebud.ai/assets/flint.png?wYiy',
             'feather': 'https://play.rosebud.ai/assets/feather.png?TRqd',
             'bg_Sandro': './assets/level3/backgroud.png',
-            'full body zombie minecraft': 'https://play.rosebud.ai/assets/full body zombie minecraft.png?rfIu',
             'ironOre': 'https://play.rosebud.ai/assets/minecraft-iron-ore-cube-mr3AX6E-600-removebg-preview.png?FUcG',
             'greyCubeBlock': 'https://play.rosebud.ai/assets/grey cube block minecraft.png?ueiM',
             'dave minecraft': 'https://play.rosebud.ai/assets/dave minecraft.png?IPuk',
