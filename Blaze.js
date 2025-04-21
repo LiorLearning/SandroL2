@@ -20,6 +20,13 @@ export default class Blaze {
         this.currentFrame = 0;
         this.totalFrames = 4;
         this.particles = []; // Array to store fire particles
+        this.fireProjectiles = []; // Array to store fire projectiles
+        
+        // Fire projectile properties
+        this.fireTimer = 0;
+        this.fireInterval = 3000; // Fire every 3 seconds
+        this.lastPlayerX = 0; // Last known player position
+        this.lastPlayerY = 0;
         
         // Health properties
         this.maxHealth = 100;
@@ -34,7 +41,7 @@ export default class Blaze {
         this.floatingHeight = 10;
     }
 
-    update(deltaTime) {
+    update(deltaTime, player = null) {
         // Horizontal movement
         this.x += this.speed * this.direction;
         
@@ -84,6 +91,22 @@ export default class Blaze {
         // Update particles
         this._updateParticles();
         
+        // Update fire projectiles
+        this._updateFireProjectiles(deltaTime);
+        
+        // Shoot fire at player if visible
+        if (player) {
+            this.lastPlayerX = player.x;
+            this.lastPlayerY = player.y;
+            
+            // Update fire timer
+            this.fireTimer += deltaTime;
+            if (this.fireTimer >= this.fireInterval) {
+                this.shootFireAt(player.x, player.y);
+                this.fireTimer = 0;
+            }
+        }
+        
         // Update animation
         this.frameCount++;
         if (this.frameCount >= this.animationSpeed) {
@@ -103,6 +126,108 @@ export default class Blaze {
         if (Math.random() < 0.05) {
             this._createFireParticles(1); // Create just one ambient particle
         }
+    }
+
+    shootFireAt(targetX, targetY) {
+        // Create fire projectile
+        const centerX = this.x + this.width / 2;
+        const centerY = this.y + this.height / 2;
+        
+        // Calculate direction to player
+        const dx = targetX - centerX;
+        const dy = targetY - centerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Normalize direction
+        const dirX = dx / distance;
+        const dirY = dy / distance;
+        
+        // Create fire projectile
+        this.fireProjectiles.push({
+            x: centerX,
+            y: centerY,
+            speedX: dirX * 3,  // Projectile speed
+            speedY: dirY * 3,
+            width: 30,
+            height: 30,
+            damage: 1,         // Damage amount
+            active: true,
+            rotationAngle: Math.atan2(dy, dx),
+            life: 100          // Projectile life
+        });
+        
+        // Create effect particles
+        this._createFireParticles(15);
+    }
+
+    _updateFireProjectiles(deltaTime) {
+        for (let i = this.fireProjectiles.length - 1; i >= 0; i--) {
+            const fire = this.fireProjectiles[i];
+            
+            // Move fire
+            fire.x += fire.speedX;
+            fire.y += fire.speedY;
+            
+            // Update life
+            fire.life--;
+            
+            // Create trail particles
+            if (Math.random() < 0.3) {
+                this.particles.push({
+                    x: fire.x + (Math.random() - 0.5) * fire.width * 0.5,
+                    y: fire.y + (Math.random() - 0.5) * fire.height * 0.5,
+                    size: 1 + Math.random() * 2,
+                    speedX: (Math.random() - 0.5) * 0.5,
+                    speedY: (Math.random() - 0.5) * 0.5,
+                    life: 10 + Math.random() * 20,
+                    color: `rgba(255, ${150 + Math.floor(Math.random() * 100)}, 0, 0.7)`
+                });
+            }
+            
+            // Remove if expired
+            if (fire.life <= 0) {
+                this.fireProjectiles.splice(i, 1);
+            }
+        }
+    }
+    
+    checkProjectileCollision(player) {
+        const playerBounds = player.getBounds();
+        
+        for (let i = this.fireProjectiles.length - 1; i >= 0; i--) {
+            const fire = this.fireProjectiles[i];
+            
+            // Create fire bounds
+            const fireBounds = {
+                x: fire.x - fire.width / 2,
+                y: fire.y - fire.height / 2,
+                width: fire.width,
+                height: fire.height
+            };
+            
+            // Check collision
+            if (isColliding(playerBounds, fireBounds)) {
+                // Remove projectile
+                this.fireProjectiles.splice(i, 1);
+                
+                // Create hit particles
+                for (let j = 0; j < 10; j++) {
+                    this.particles.push({
+                        x: fire.x + (Math.random() - 0.5) * fire.width,
+                        y: fire.y + (Math.random() - 0.5) * fire.height,
+                        size: 2 + Math.random() * 3,
+                        speedX: (Math.random() - 0.5) * 2,
+                        speedY: (Math.random() - 0.5) * 2 - 1,
+                        life: 20 + Math.random() * 20,
+                        color: `rgba(255, ${150 + Math.floor(Math.random() * 100)}, 0, 0.8)`
+                    });
+                }
+                
+                return fire.damage; // Return damage amount
+            }
+        }
+        
+        return 0; // No collision
     }
 
     checkCollision(player) {
@@ -134,6 +259,9 @@ export default class Blaze {
         
         // Render particles first (behind the blaze)
         this._renderParticles(ctx, cameraOffset);
+        
+        // Render fire projectiles
+        this._renderFireProjectiles(ctx, cameraOffset, assetLoader);
         
         // Apply floating effect
         const floatingY = Math.sin(this.floatingOffset) * this.floatingHeight;
@@ -212,6 +340,64 @@ export default class Blaze {
         }
         
         ctx.restore();
+    }
+    
+    _renderFireProjectiles(ctx, cameraOffset, assetLoader) {
+        // Get fire texture
+        const fireTexture = assetLoader?.getAsset('fire');
+        
+        for (const fire of this.fireProjectiles) {
+            const screenX = fire.x - cameraOffset;
+            
+            // Skip if off screen
+            if (screenX < -fire.width || screenX > ctx.canvas.width + fire.width) {
+                continue;
+            }
+            
+            ctx.save();
+            ctx.translate(screenX, fire.y);
+            ctx.rotate(fire.rotationAngle);
+            
+            // Alpha based on remaining life
+            const alpha = Math.min(1, fire.life / 80);
+            ctx.globalAlpha = alpha;
+            
+            // Draw fire projectile
+            if (fireTexture) {
+                const size = fire.width * 1.5;
+                ctx.drawImage(
+                    fireTexture,
+                    -size/2,
+                    -size/2,
+                    size,
+                    size
+                );
+            } else {
+                // Fallback if texture not loaded
+                ctx.fillStyle = '#FF6600';
+                ctx.beginPath();
+                ctx.arc(0, 0, fire.width/2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Add glow effect
+            ctx.globalCompositeOperation = 'lighter';
+            const glowSize = fire.width * 1.2;
+            const glowGradient = ctx.createRadialGradient(
+                0, 0, 0,
+                0, 0, glowSize
+            );
+            
+            glowGradient.addColorStop(0, 'rgba(255, 200, 0, 0.6)');
+            glowGradient.addColorStop(1, 'rgba(255, 50, 0, 0)');
+            
+            ctx.fillStyle = glowGradient;
+            ctx.beginPath();
+            ctx.arc(0, 0, glowSize, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.restore();
+        }
     }
 
     _renderHealthBar(ctx, screenX) {

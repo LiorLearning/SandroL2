@@ -43,6 +43,7 @@ var Player = /*#__PURE__*/ function() {
         this.height = 45; // Taller to match Dave sprite
         this.velocityX = 0;
         this.velocityY = 0;
+        this.health = 5;
         this.speed = 5;
         this.jumpForce = -12;
         this.isJumping = false;

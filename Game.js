@@ -970,7 +970,53 @@ var Game = /*#__PURE__*/ function() {
                     // Process game updates in logical order
                     if (this.enteredPortal) {
                         // Update blazes after entering portal
-                        this.world.updateBlazes(deltaTime);
+                        this.world.updateBlazes(deltaTime, this.player);
+                        
+                        // Check for blaze fire projectile collisions
+                        if (!this.player.isImmune) {
+                            for (const blaze of this.world.blazes) {
+                                const fireDamage = blaze.checkProjectileCollision(this.player);
+                                if (fireDamage > 0) {
+                                    // Player hit by fire - take damage
+                                    this.player.takeDamage(fireDamage);
+                                    
+                                    // Make player immune for a short time
+                                    this.player.makeImmune(1000);
+                                    
+                                    // Apply screen shake
+                                    this.applyScreenShake(3);
+                                    
+                                    // Show damage text
+                                    const floatingText = new FloatingText(
+                                        'Fire damage!',
+                                        this.player.x + this.player.width / 2, 
+                                        this.player.y - 20,
+                                    );
+                                    this.floatingTexts.push(floatingText);
+                                    
+                                    // Play hurt sound
+                                    this.audioManager.play('hurt', 0.6);
+                                    
+                                    // Check if player is out of health
+                                    if (this.player.health <= 0) {
+                                        // Reset player position
+                                        this.player.x = 100;
+                                        this.player.y = 300;
+                                        this.player.health = 5;
+                                        
+                                        // Show game over text
+                                        const gameOverText = new FloatingText(
+                                            'Game Over - Try Again!',
+                                            CANVAS_WIDTH / 2,
+                                            CANVAS_HEIGHT / 2
+                                        );
+                                        this.floatingTexts.push(gameOverText);
+                                    }
+                                    
+                                    break; // Only process one hit at a time
+                                }
+                            }
+                        }
                     } else {
                         // Update endermen before entering portal 
                         this.world.updateEndermen(deltaTime);
@@ -1198,6 +1244,10 @@ var Game = /*#__PURE__*/ function() {
                         }
                     }
                     this.craftingPanel.render(this.ctx);
+                    
+                    // Render player health at top of screen
+                    this.renderPlayerHealth();
+                    
                     // Render touch controls on top
                     this.touchControls.render(this.ctx);
                     // If in quiz mode, render the quiz UI
@@ -1333,18 +1383,18 @@ var Game = /*#__PURE__*/ function() {
                 }
                 
                 // Draw background box
-                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                this.ctx.fillRect(10, 10, 170, 30);
-                this.ctx.strokeStyle = '#AA55FF'; // Purple for enderman
-                this.ctx.lineWidth = 2;
-                this.ctx.strokeRect(10, 10, 170, 30);
+                // this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                // this.ctx.fillRect(10, 10, 170, 30);
+                // this.ctx.strokeStyle = '#AA55FF'; // Purple for enderman
+                // this.ctx.lineWidth = 2;
+                // this.ctx.strokeRect(10, 10, 170, 30);
                 
                 // Draw text
-                this.ctx.fillStyle = '#FFFFFF';
-                this.ctx.font = '16px Arial';
-                this.ctx.textAlign = 'left';
-                this.ctx.textBaseline = 'middle';
-                this.ctx.fillText(`Enderman Speed: ${currentSpeed.toFixed(1)}`, 20, 25);
+                // this.ctx.fillStyle = '#FFFFFF';
+                // this.ctx.font = '16px Arial';
+                // this.ctx.textAlign = 'left';
+                // this.ctx.textBaseline = 'middle';
+                // this.ctx.fillText(`Enderman Speed: ${currentSpeed.toFixed(1)}`, 20, 25);
             }
         },
         {
@@ -2536,6 +2586,79 @@ var Game = /*#__PURE__*/ function() {
                             velocityX: (Math.random() - 0.5) * 1.5
                         }
                     ));
+                }
+            }
+        },
+        {
+            key: "renderPlayerHealth",
+            value: function renderPlayerHealth() {
+                // Create a nicer health display at the top of the screen
+                const heartSize = 30;
+                const heartSpacing = 35;
+                const startX = 10;
+                const startY = 10;
+                
+                // Draw hearts for each health point
+                for (let i = 0; i < this.player.health; i++) {
+                    const x = startX + 10 + (i * heartSpacing);
+                    
+                    // Draw heart shape
+                    this.ctx.fillStyle = '#FF3030';
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x + heartSize/2, startY + heartSize/5);
+                    this.ctx.bezierCurveTo(
+                        x + heartSize/2, startY, 
+                        x, startY, 
+                        x, startY + heartSize/3
+                    );
+                    this.ctx.bezierCurveTo(
+                        x, startY + heartSize/1.5, 
+                        x + heartSize/2, startY + heartSize, 
+                        x + heartSize/2, startY + heartSize
+                    );
+                    this.ctx.bezierCurveTo(
+                        x + heartSize/2, startY + heartSize, 
+                        x + heartSize, startY + heartSize/1.5, 
+                        x + heartSize, startY + heartSize/3
+                    );
+                    this.ctx.bezierCurveTo(
+                        x + heartSize, startY, 
+                        x + heartSize/2, startY, 
+                        x + heartSize/2, startY + heartSize/5
+                    );
+                    this.ctx.fill();
+                }
+                
+                // Draw empty hearts for missing health (up to 5 total)
+                for (let i = this.player.health; i < 5; i++) {
+                    const x = startX + 65 + (i * heartSpacing);
+                    
+                    // Draw empty heart outline
+                    this.ctx.strokeStyle = 'rgba(180, 30, 30, 0.5)';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x + heartSize/2, startY + heartSize/5);
+                    this.ctx.bezierCurveTo(
+                        x + heartSize/2, startY, 
+                        x, startY, 
+                        x, startY + heartSize/3
+                    );
+                    this.ctx.bezierCurveTo(
+                        x, startY + heartSize/1.5, 
+                        x + heartSize/2, startY + heartSize, 
+                        x + heartSize/2, startY + heartSize
+                    );
+                    this.ctx.bezierCurveTo(
+                        x + heartSize/2, startY + heartSize, 
+                        x + heartSize, startY + heartSize/1.5, 
+                        x + heartSize, startY + heartSize/3
+                    );
+                    this.ctx.bezierCurveTo(
+                        x + heartSize, startY, 
+                        x + heartSize/2, startY, 
+                        x + heartSize/2, startY + heartSize/5
+                    );
+                    this.ctx.stroke();
                 }
             }
         },

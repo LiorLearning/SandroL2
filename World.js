@@ -1018,10 +1018,9 @@ var World = /*#__PURE__*/ function() {
         },
         {
             key: "updateBlazes",
-            value: function updateBlazes(deltaTime) {
-                // Update each blaze's position and state
-                for (let i = 0; i < this.blazes.length; i++) {
-                    this.blazes[i].update(deltaTime);
+            value: function updateBlazes(deltaTime, player) {
+                for(let i = 0; i < this.blazes.length; i++) {
+                    this.blazes[i].update(deltaTime, player);
                 }
             }
         },
