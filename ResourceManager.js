@@ -73,7 +73,8 @@ export var ResourceManager = /*#__PURE__*/ function() {
             goldNuggets: 0, // Only tracking gold nuggets
             crossbow: 0,    // Add crossbow resource
             shield: 0,      // Add shield resource
-            obsidian: 0     // Add obsidian resource
+            obsidian: 0,    // Add obsidian resource
+            enderpearl: 0   // Add enderpearl resource
         };
         // Simplified crafting requirements
         this.craftingRequirements = {

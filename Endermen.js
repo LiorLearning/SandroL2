@@ -42,6 +42,13 @@ var Enderman = /*#__PURE__*/ function() {
         this.totalFrames = 4;
         this.particles = []; // Array to store teleport particles
         this.enderPearlsCollected = 0;
+        
+        // Add health properties
+        this.maxHealth = 100;
+        this.health = this.maxHealth;
+        this.isDamaged = false;
+        this.damageTimer = 0;
+        this.damageDuration = 500; // Duration to show damage effect in milliseconds
     }
     _create_class(Enderman, [
         {
@@ -115,7 +122,17 @@ var Enderman = /*#__PURE__*/ function() {
                 if (screenX < -this.width || screenX > ctx.canvas.width) {
                     return;
                 }
+                
                 ctx.save();
+                
+                // Update damage timer if showing damage
+                if (this.isDamaged) {
+                    this.damageTimer += 16; // Approximate for one frame at 60fps
+                    if (this.damageTimer >= this.damageDuration) {
+                        this.isDamaged = false;
+                    }
+                }
+                
                 if (this.isFalling) {
                     var centerX = screenX + this.width / 2;
                     var centerY = this.y + this.height / 2;
@@ -124,6 +141,7 @@ var Enderman = /*#__PURE__*/ function() {
                     ctx.rotate(rotationAngle * this.direction);
                     ctx.translate(-centerX, -centerY);
                 }
+                
                 var endermanTexture = assetLoader === null || assetLoader === void 0 ? void 0 : assetLoader.getAsset('enderman');
                 if (endermanTexture) {
                     var endermanWidth = this.width * 1.5;
@@ -143,18 +161,47 @@ var Enderman = /*#__PURE__*/ function() {
                         var fallRotation = Math.min(this.fallVelocity * 0.05, 0.3) * this.direction;
                         ctx.rotate(fallRotation);
                     }
+                    
+                    // Apply damaged appearance
+                    if (this.isDamaged) {
+                        // Flickering opacity for damage effect
+                        ctx.globalAlpha = 0.5 + Math.sin(this.damageTimer * 0.2) * 0.2;
+                        // Add red tint
+                        ctx.filter = 'brightness(1.3) hue-rotate(-20deg)';
+                    } else {
+                        // Reduced opacity based on health
+                        const healthPercent = this.health / this.maxHealth;
+                        ctx.globalAlpha = 0.5 + (healthPercent * 0.5); // From 0.5 to 1.0 opacity
+                    }
+                    
                     ctx.drawImage(endermanTexture, -endermanWidth / 2, -endermanHeight / 2, endermanWidth, endermanHeight);
                     ctx.restore();
                 } else {
-                    ctx.fillStyle = '#442244'; // Enderman purple color
+                    // Fallback rendering with damage effect
+                    ctx.fillStyle = this.isDamaged ? '#FF44FF' : '#442244'; // Brighter color when damaged
+                    ctx.globalAlpha = this.health / this.maxHealth; // Fade based on health
                     ctx.fillRect(screenX, this.y, this.width, this.height);
+                    ctx.globalAlpha = 1.0;
                 }
+                
+                // Show damage text if needed
+                if (this.isDamaged) {
+                    ctx.fillStyle = 'red';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText("-50% Health", screenX + this.width / 2, this.y - 15);
+                }
+                
                 if (this.isFalling) {
                     ctx.fillStyle = 'white';
                     ctx.font = '12px Arial';
                     ctx.textAlign = 'center';
                     ctx.fillText("Vwoop!", screenX + this.width / 2, this.y - 25);
                 }
+                
+                // Show health bar
+                this._renderHealthBar(ctx, screenX);
+                
                 ctx.restore();
                 this._renderParticles(ctx, cameraOffset);
             }
@@ -201,7 +248,8 @@ var Enderman = /*#__PURE__*/ function() {
                     for(var _iterator = this.particles[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true){
                         var p = _step.value;
                         var alpha = Math.min(1, p.life / 20);
-                        ctx.fillStyle = "rgba(136, 0, 170, ".concat(alpha, ")"); // Purple color for enderman particles
+                        // Use particle color if specified, otherwise use default purple
+                        ctx.fillStyle = p.color || "rgba(136, 0, 170, ".concat(alpha, ")");
                         ctx.beginPath();
                         ctx.arc(p.x - cameraOffset, p.y, p.size, 0, Math.PI * 2);
                         ctx.fill();
@@ -221,6 +269,67 @@ var Enderman = /*#__PURE__*/ function() {
                     }
                 }
                 ctx.restore();
+            }
+        },
+        {
+            key: "_renderHealthBar",
+            value: function _renderHealthBar(ctx, screenX) {
+                const barWidth = 40;
+                const barHeight = 6;
+                const barX = screenX - 5;
+                const barY = this.y - 30;
+                
+                // Draw background
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.fillRect(barX, barY, barWidth, barHeight);
+                
+                // Draw health
+                const healthPercent = this.health / this.maxHealth;
+                const healthWidth = barWidth * healthPercent;
+                
+                // Health bar gradient (green to red)
+                const gradient = ctx.createLinearGradient(barX, barY, barX + healthWidth, barY);
+                gradient.addColorStop(0, '#ff3030');  // Red
+                gradient.addColorStop(1, '#ff5050');  // Lighter red
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(barX, barY, healthWidth, barHeight);
+                
+                // Draw border
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(barX, barY, barWidth, barHeight);
+            }
+        },
+        {
+            key: "takeDamage",
+            value: function takeDamage(amount) {
+                this.health -= amount;
+                this.isDamaged = true;
+                this.damageTimer = 0;
+                
+                // Create damage particles
+                this._createDamageParticles();
+                
+                return this.health <= 0; // Return true if enderman should be defeated
+            }
+        },
+        {
+            key: "_createDamageParticles",
+            value: function _createDamageParticles() {
+                // Create 8-12 particles when enderman is hit
+                var particleCount = 8 + Math.floor(Math.random() * 5);
+                for(var i = 0; i < particleCount; i++){
+                    this.particles.push({
+                        x: this.x + this.width / 2 + (Math.random() - 0.5) * this.width,
+                        y: this.y + this.height / 2 + (Math.random() - 0.5) * this.height,
+                        size: 2 + Math.random() * 3,
+                        speedX: -3 + Math.random() * 6,
+                        speedY: -4 - Math.random() * 2,
+                        life: 30 + Math.random() * 20,
+                        color: 'rgba(255, 0, 100, 0.8)' // Red damage particles
+                    });
+                }
             }
         }
     ]);

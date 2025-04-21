@@ -415,6 +415,17 @@ var World = /*#__PURE__*/ function() {
             }
         },
         {
+            key: "addItem",
+            value: function addItem(item) {
+                // Generate a unique ID for the item if it doesn't have one
+                if (!item.id) {
+                    item.id = 'item_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                }
+                this.items.push(item);
+                return item;
+            }
+        },
+        {
             key: "updateZombies",
             value: function updateZombies(deltaTime) {
                 var _iteratorNormalCompletion = true, _didIteratorError = false, _iteratorError = undefined;
@@ -590,6 +601,28 @@ var World = /*#__PURE__*/ function() {
                                     ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
                                     ctx.fillRect(screenX1, item.y + 5, 5, blockHeight - 5);
                                 }
+                            } else if (item.type === 'enderpearl') {
+                                // Draw enderpearl with floating animation
+                                const floatOffset = Math.sin(Date.now() / 400) * 3;
+                                ctx.save();
+                                ctx.translate(0, floatOffset);
+                                this.drawEnderpearl(ctx, screenX1, item.y);
+                                ctx.restore();
+                                
+                                // Add particles for enderpearl
+                                if (Math.random() < 0.1) {
+                                    // Occasionally add a particle effect
+                                    const particleSize = 2 + Math.random() * 2;
+                                    const particleX = screenX1 + item.width/2 + (Math.random() - 0.5) * 10;
+                                    const particleY = item.y + item.height/2 + (Math.random() - 0.5) * 10;
+                                    
+                                    ctx.fillStyle = '#55FFAA';
+                                    ctx.globalAlpha = 0.7;
+                                    ctx.beginPath();
+                                    ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
+                                    ctx.fill();
+                                    ctx.globalAlpha = 1.0;
+                                }
                             }
                             // Draw label if needed
                             if (item.type) {
@@ -742,6 +775,37 @@ var World = /*#__PURE__*/ function() {
                     ctx.fillRect(x, y, nuggetSize, 5);
                     ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
                     ctx.fillRect(x, y + 5, 5, nuggetSize - 5);
+                }
+            }
+        },
+        {
+            key: "drawEnderpearl",
+            value: function drawEnderpearl(ctx, x, y) {
+                const pearlSize = 20;
+                const enderpearlTexture = this.assetLoader.getAsset('enderpearl');
+                
+                if (enderpearlTexture) {
+                    ctx.drawImage(enderpearlTexture, x, y, pearlSize, pearlSize);
+                    
+                    // Add a subtle glow effect for the enderpearl
+                    ctx.save();
+                    ctx.globalAlpha = 0.3;
+                    ctx.shadowColor = '#55FFAA';
+                    ctx.shadowBlur = 10;
+                    ctx.drawImage(enderpearlTexture, x, y, pearlSize, pearlSize);
+                    ctx.restore();
+                } else {
+                    // Fallback if texture isn't loaded
+                    ctx.fillStyle = '#1D8B77';
+                    ctx.beginPath();
+                    ctx.arc(x + pearlSize/2, y + pearlSize/2, pearlSize/2, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Add inner glow
+                    ctx.fillStyle = '#55FFAA';
+                    ctx.beginPath();
+                    ctx.arc(x + pearlSize/2, y + pearlSize/2, pearlSize/4, 0, Math.PI * 2);
+                    ctx.fill();
                 }
             }
         },

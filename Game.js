@@ -12,6 +12,7 @@ import { FloatingText } from './FloatingText.js';
 import QuizPanel from './QuizPanel.js';
 import Enderman from './Endermen.js';
 import { ResourceManager } from './ResourceManager.js';
+import Hammer from './Hammer.js';
 
 function _array_like_to_array(arr, len) {
     if (len == null || len > arr.length) len = arr.length;
@@ -241,6 +242,11 @@ var Game = /*#__PURE__*/ function() {
             lava: '#FF4500',
             glow: '#FFA500'
         };
+
+        // Initialize hammer array
+        this.hammers = [];
+        this.hammerCooldown = 0;
+        this.hammerCooldownTime = 1500; // 1.5 seconds between hammer throws
 
         // Initialize
         this.initializeGame(container);
@@ -474,6 +480,11 @@ var Game = /*#__PURE__*/ function() {
         {
             key: "tryCollectResource",
             value: function tryCollectResource() {
+                // Check if we should throw the hammer instead
+                if (this.tryThrowHammer()) {
+                    return; // Hammer thrown, early exit
+                }
+                
                 // First try mining (which now also handles resource collection)
                 if (this.tryMining()) {
                     return; // Mining action was handled
@@ -618,6 +629,137 @@ var Game = /*#__PURE__*/ function() {
             }
         },
         {
+            key: "tryThrowHammer",
+            value: function tryThrowHammer() {
+                // Don't throw if on cooldown
+                if (this.hammerCooldown > 0) {
+                    return false;
+                }
+                
+                // Check if player is near any mining spots
+                const playerX = this.player.x;
+                const playerBounds = this.player.getBounds();
+                const miningCheckDistance = 100;
+                
+                // Check if player is close to a mining spot (if yes, don't throw hammer)
+                for (const miningSpot of this.world.miningSpots) {
+                    if (!miningSpot.active) continue;
+                    
+                    // Skip far away mining spots
+                    if (Math.abs(miningSpot.x - playerX) > miningCheckDistance) continue;
+                    
+                    // Check if player is close enough to mine
+                    const miningBounds = {
+                        x: miningSpot.x - 20,
+                        y: miningSpot.y - 20,
+                        width: miningSpot.width + 40,
+                        height: miningSpot.height + 40
+                    };
+                    
+                    if (this.isColliding(playerBounds, miningBounds)) {
+                        return false; // Player is near mining spot, don't throw hammer
+                    }
+                }
+                
+                // Player is not near mining spot, throw hammer
+                const playerDirection = this.player.direction;
+                const hammerX = this.player.x + (playerDirection === 1 ? this.player.width : 0);
+                const hammerY = this.player.y + this.player.height * 0.3; // Slightly above middle
+                
+                // Create a new hammer
+                const hammer = new Hammer(hammerX, hammerY, playerDirection, this.assetLoader);
+                hammer.initialX = hammerX; // Store initial position for distance calculation
+                this.hammers.push(hammer);
+                
+                // Set cooldown
+                this.hammerCooldown = this.hammerCooldownTime;
+                
+                // Play throw sound
+                this.audioManager.play('collect', 1.2);
+                
+                // Apply screen shake
+                this.applyScreenShake(2);
+                
+                // Show throwing message
+                this.floatingTexts.push(new FloatingText("Hammer throw!", this.player.x, this.player.y - 20));
+                
+                return true; // Hammer was thrown
+            }
+        },
+        {
+            key: "updateHammers",
+            value: function updateHammers(deltaTime) {
+                // Update cooldown
+                if (this.hammerCooldown > 0) {
+                    this.hammerCooldown -= deltaTime;
+                }
+                
+                // Update each hammer
+                for (let i = this.hammers.length - 1; i >= 0; i--) {
+                    const hammer = this.hammers[i];
+                    hammer.update(deltaTime);
+                    
+                    // Check for collisions with endermen
+                    let hitEnderman = false;
+                    for (let j = 0; j < this.endermen.length; j++) {
+                        const enderman = this.endermen[j];
+                        if (hammer.checkEndermanCollision(enderman)) {
+                            hitEnderman = true;
+                            
+                            // Deal 50 damage to the enderman
+                            const damageAmount = 50;
+                            const defeated = enderman.takeDamage(damageAmount);
+                            
+                            // Play hit sound
+                            this.audioManager.play('hurt', 0.9);
+                            
+                            // Apply screen shake
+                            this.applyScreenShake(4);
+                            
+                            // Show hit message
+                            this.floatingTexts.push(new FloatingText("-50% Health!", hammer.x, hammer.y - 20));
+                            
+                            // If enderman is defeated, remove it and spawn enderpearl
+                            if (defeated) {
+                                // Remove enderman
+                                this.endermen.splice(j, 1);
+                                
+                                // Spawn enderpearl
+                                this.spawnEnderpearl(enderman.x, enderman.y);
+                                
+                                // Add defeated message
+                                this.floatingTexts.push(new FloatingText("Enderman defeated!", hammer.x, hammer.y - 40));
+                            }
+                            
+                            // Break out of enderman loop
+                            break;
+                        }
+                    }
+                    
+                    // Remove hammer if it hit something or is no longer active
+                    if (hitEnderman || !hammer.active) {
+                        this.hammers.splice(i, 1);
+                    }
+                }
+            }
+        },
+        {
+            key: "spawnEnderpearl",
+            value: function spawnEnderpearl(x, y) {
+                // Add an enderpearl item to the world at the position where the enderman was hit
+                this.world.addItem({
+                    type: 'enderpearl',
+                    x: x,
+                    y: y,
+                    width: 20,
+                    height: 20
+                });
+                
+                // Show message about dropped item
+                this.floatingTexts.push(new FloatingText("Ender Pearl dropped!", x, y - 40));
+            }
+        },
+        {
             key: "update",
             value: function update(timestamp) {
                 const deltaTime = timestamp - this.lastTimestamp;
@@ -638,6 +780,9 @@ var Game = /*#__PURE__*/ function() {
                     this.world.updateEndermen(deltaTime);
                     this.world.updateMiningSpots(deltaTime);
                     this.player.update(deltaTime, this.world);
+                    
+                    // Update hammers
+                    this.updateHammers(deltaTime);
 
                     // Camera and viewport updates
                     this.cameraOffset = Math.max(0, this.player.x - CANVAS_WIDTH * 0.25);
@@ -879,6 +1024,11 @@ var Game = /*#__PURE__*/ function() {
                     
                     this.ctx.restore();
                 }
+
+                // Render hammers
+                this.hammers.forEach(hammer => {
+                    hammer.render(this.ctx, this.cameraOffset);
+                });
             }
         },
         {
@@ -1334,7 +1484,7 @@ var Game = /*#__PURE__*/ function() {
                 var resources = this.resourceManager.getResources();
                 
                 // Check if player has collected all required resources
-                if (resources.crossbow >= 1 && resources.shield >= 1 && resources.obsidian >= 4) {
+                if (resources.crossbow >= 1 && resources.shield >= 1 && resources.obsidian >= 4 && resources.enderpearl >= 2) {
                     // All required resources collected, show a message
                     this.floatingTexts.push(new FloatingText(
                         "All resources collected! You can proceed to the next stage.", 
@@ -1364,7 +1514,7 @@ var Game = /*#__PURE__*/ function() {
                 // Create a popup or notification
                 this.resourceCompletionMessage = {
                     text: "You have collected all required resources!",
-                    subtext: "1 Crossbow, 1 Shield, 4 Obsidian Blocks",
+                    subtext: "1 Crossbow, 1 Shield, 4 Obsidian Blocks, 2 Ender Pearls",
                     startTime: Date.now(),
                     duration: 5000 // Show for 5 seconds
                 };

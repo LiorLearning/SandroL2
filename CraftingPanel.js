@@ -13,7 +13,8 @@ export class CraftingPanel {
         this.requirements = {
             crossbow: 1,
             shield: 1,
-            obsidian: 4
+            obsidian: 4,
+            enderpearl: 2
         };
         
         // Remove the click handler as we're no longer using a craft button
@@ -43,12 +44,12 @@ export class CraftingPanel {
     render(ctx) {
         // Draw panel background
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        ctx.fillRect(this.x, this.y, this.width, this.height + 30); // Increased height for new resource
         
         // Draw border
         ctx.strokeStyle = '#553300';
         ctx.lineWidth = 2;
-        ctx.strokeRect(this.x, this.y, this.width, this.height);
+        ctx.strokeRect(this.x, this.y, this.width, this.height + 30); // Increased height for new resource
         
         // Draw diagonal corners for Minecraft style
         const cornerSize = 8;
@@ -91,12 +92,14 @@ export class CraftingPanel {
         this.renderResourceRequirement(ctx, 'Crossbow', 'crossbow', 1, 70);
         this.renderResourceRequirement(ctx, 'Shield', 'shield', 1, 100);
         this.renderResourceRequirement(ctx, 'Obsidian', 'obsidian', 4, 130);
+        this.renderResourceRequirement(ctx, 'Ender Pearl', 'enderpearl', 2, 160);
 
         // Draw completion status
         const allRequirementsMet = 
             (this.resources.crossbow || 0) >= this.requirements.crossbow &&
             (this.resources.shield || 0) >= this.requirements.shield &&
-            (this.resources.obsidian || 0) >= this.requirements.obsidian;
+            (this.resources.obsidian || 0) >= this.requirements.obsidian &&
+            (this.resources.enderpearl || 0) >= this.requirements.enderpearl;
 
         ctx.fillStyle = allRequirementsMet ? '#4CAF50' : '#FFCC33';
         ctx.font = 'bold 14px Arial';
@@ -104,14 +107,14 @@ export class CraftingPanel {
         ctx.fillText(
             allRequirementsMet ? 'All requirements met!' : 'Collect all resources', 
             this.x + this.width / 2, 
-            this.y + 155
+            this.y + 185
         );
 
         // Draw instructions
         ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
         ctx.font = '12px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('Mine for items in the world', this.x + this.width / 2, this.y + 175);
+        ctx.fillText('Mine for items and throw hammer (E) at endermen', this.x + this.width / 2, this.y + 205);
     }
 
     renderResourceRequirement(ctx, label, resourceType, required, yPos) {

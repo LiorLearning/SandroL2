@@ -48,6 +48,7 @@ var Player = /*#__PURE__*/ function() {
         this.isJumping = false;
         this.hasDoubleJumped = false; // Track if double jump has been used
         this.facingRight = true;
+        this.direction = 1; // 1 for right, -1 for left
         this.isHit = false;
         this.hitTimer = 0;
         this.hitDuration = 500; // Duration of hit effect in milliseconds
@@ -58,6 +59,7 @@ var Player = /*#__PURE__*/ function() {
         this.immunityDuration = 1500; // 1.5 seconds of immunity after being hit
         this.immunityTimer = 0;
         this.hasShovel = true; // Player starts with a shovel
+        this.hasHammer = true; // Player starts with a hammer
         this.hasGoldenBoots = false; // Track golden boots status
     }
     _create_class(Player, [
@@ -66,6 +68,7 @@ var Player = /*#__PURE__*/ function() {
             value: function moveLeft() {
                 this.velocityX = -this.speed;
                 this.facingRight = false;
+                this.direction = -1;
             }
         },
         {
@@ -73,6 +76,7 @@ var Player = /*#__PURE__*/ function() {
             value: function moveRight() {
                 this.velocityX = this.speed;
                 this.facingRight = true;
+                this.direction = 1;
             }
         },
         {

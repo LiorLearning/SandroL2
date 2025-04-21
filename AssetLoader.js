@@ -208,10 +208,8 @@ export var AssetLoader = /*#__PURE__*/ function() {
             'steve minecraft with golden boots': 'https://rosebud.ai/assets/steve minecraft with golden boots.png?EWhA',
             'gold nugget': 'https://rosebud.ai/assets/one gold nugget minecraft.png?qQYy',
             'enderman': './assets/level3/enderman.png',
-            // 'enderPearl': './assets/level3/ender_pearl.png',
-            // 'blazeRod': './assets/level3/blaze_rod.png',
-            // 'blazePowder': './assets/level3/blaze_powder.png',
-            // 'enderEye': './assets/level3/ender_eye.png',
+            'hammer': './assets/level3/hammer.png',
+            'enderpearl': './assets/level3/ender_pearl.png',
             'obsidian': './assets/level3/obsidian.png',
             'crossbow': './assets/level3/crossbow.png',
             'shield': './assets/level3/shield.png'
