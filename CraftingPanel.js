@@ -26,19 +26,6 @@ export class CraftingPanel {
             }
         };
         
-        // Add craft button
-        this.craftButton = {
-            width: 120,
-            height: 40,
-            x: this.x + (this.width - 120) / 2,
-            y: this.y + 195,
-            visible: false
-        };
-        
-        // Remove the click handler as we're no longer using a craft button
-        this.handleClick = this.handleClick.bind(this);
-        this.game.canvas.addEventListener('click', this.handleClick);
-        
         // Track highlighted resources
         this.highlightedResource = null;
         this.highlightTimer = 0;
@@ -47,6 +34,10 @@ export class CraftingPanel {
 
     updateResources(resources) {
         this.resources = resources;
+        // Check if resources meet requirements for automatic fortress creation
+        if (this.isStage2) {
+            this.checkResourceCompletion();
+        }
     }
     
     setStage(stage) {
@@ -56,27 +47,6 @@ export class CraftingPanel {
     highlightResource(resourceType) {
         this.highlightedResource = resourceType;
         this.highlightTimer = this.highlightDuration;
-    }
-
-    handleClick(e) {
-        // Check if craft button is clicked
-        if (this.craftButton.visible) {
-            const rect = this.game.canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-            
-            if (mouseX >= this.craftButton.x && 
-                mouseX <= this.craftButton.x + this.craftButton.width &&
-                mouseY >= this.craftButton.y && 
-                mouseY <= this.craftButton.y + this.craftButton.height) {
-                
-                if (this.isStage2) {
-                    this.createEndPortal();
-                } else {
-                    this.createPortal();
-                }
-            }
-        }
     }
 
     createPortal() {
@@ -139,9 +109,6 @@ export class CraftingPanel {
             
             // Update resources display
             this.updateResources(this.resources);
-            
-            // Hide craft button after portal is created
-            this.craftButton.visible = false;
         }
     }
     
@@ -158,27 +125,40 @@ export class CraftingPanel {
             this.resources.blazerod -= reqs.blazerod;
             this.resources.enderpearl -= reqs.enderpearl;
             
-            // Create end portal in front of player
-            const portalX = this.game.player.x + 150;
-            const portalY = this.game.player.y - 100;
+            // Create fortress in front of player
+            const fortressX = this.game.player.x + 250;
+            const fortressY = this.game.player.y - 50;
             
-            // Create end portal object in the game
-            if (typeof this.game.createEndPortal === 'function') {
-                this.game.createEndPortal(portalX, portalY);
-                console.log("End Portal created at", portalX, portalY);
+            // Create fortress object in the game
+            if (typeof this.game.createFortress === 'function') {
+                this.game.createFortress(fortressX, fortressY);
+                console.log("Fortress created at", fortressX, fortressY);
+                
+                // Make sure the fortress is using the correct image
+                const fortressImage = this.game.assetLoader.getAsset('fortress');
+                if (!fortressImage) {
+                    // If fortress image isn't loaded yet, try to load it
+                    this.game.assetLoader.loadImage('fortress', 'assets/level3/fortress.png')
+                        .then(() => {
+                            // Refresh the fortress rendering
+                            if (this.game.fortress) {
+                                this.game.fortress.imageLoaded = true;
+                            }
+                        });
+                }
             }
             
-            // Play portal creation sound
+            // Play fortress discovery sound
             this.game.audioManager.play('collect', 1.5);
             
             // Add floating text message
             this.game.floatingTexts.push(
                 new this.game.floatingTextClass(
-                    "End Portal Created!",
-                    portalX,
-                    portalY - 50,
+                    "Fortress Found!",
+                    fortressX,
+                    fortressY - 80,
                     3000, // longer duration
-                    { color: '#00FFFF' } // cyan color
+                    { color: '#FF5500' } // orange color for fortress
                 )
             );
             
@@ -188,9 +168,46 @@ export class CraftingPanel {
             // Update resources display
             this.updateResources(this.resources);
             
-            // Hide craft button after portal is created
+            // Hide craft button after fortress is created
             this.craftButton.visible = false;
         }
+    }
+
+    checkResourceCompletion() {
+        let allRequirementsMet;
+        
+        if (this.isStage2) {
+            allRequirementsMet = 
+                (this.resources.blazerod || 0) >= this.requirements.stage2.blazerod &&
+                (this.resources.enderpearl || 0) >= this.requirements.stage2.enderpearl;
+                
+            // If all requirements are met and fortress doesn't exist, automatically create it
+            if (allRequirementsMet && !this.game.fortress) {
+                const fortressX = this.game.player.x + 250;
+                const fortressY = this.game.player.y - 50;
+                
+                // Use blaze rods and ender pearls
+                this.resources.blazerod -= this.requirements.stage2.blazerod;
+                this.resources.enderpearl -= this.requirements.stage2.enderpearl;
+                
+                // Create the fortress
+                if (typeof this.game.createFortress === 'function') {
+                    this.game.createFortress(fortressX, fortressY);
+                    console.log("Fortress automatically created at", fortressX, fortressY);
+                }
+                
+                // Update resources display
+                this.updateResources(this.resources);
+            }
+        } else {
+            allRequirementsMet = 
+                (this.resources.crossbow || 0) >= this.requirements.stage1.crossbow &&
+                (this.resources.shield || 0) >= this.requirements.stage1.shield &&
+                (this.resources.obsidian || 0) >= this.requirements.stage1.obsidian &&
+                (this.resources.enderpearl || 0) >= this.requirements.stage1.enderpearl;
+        }
+        
+        return allRequirementsMet;
     }
 
     render(ctx) {
@@ -247,53 +264,27 @@ export class CraftingPanel {
             this.renderResourceRequirement(ctx, 'Ender Pearl', 'enderpearl', this.requirements.stage1.enderpearl, 160);
         }
 
-        // Draw completion status
-        let allRequirementsMet;
-        
-        if (this.isStage2) {
-            allRequirementsMet = 
-                (this.resources.blazerod || 0) >= this.requirements.stage2.blazerod &&
-                (this.resources.enderpearl || 0) >= this.requirements.stage2.enderpearl;
-        } else {
-            allRequirementsMet = 
-                (this.resources.crossbow || 0) >= this.requirements.stage1.crossbow &&
-                (this.resources.shield || 0) >= this.requirements.stage1.shield &&
-                (this.resources.obsidian || 0) >= this.requirements.stage1.obsidian &&
-                (this.resources.enderpearl || 0) >= this.requirements.stage1.enderpearl;
-        }
+        // Check if all requirements are met
+        const allRequirementsMet = this.checkResourceCompletion();
 
+        // Draw completion status
         ctx.fillStyle = allRequirementsMet ? '#4CAF50' : '#FFCC33';
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(
-            allRequirementsMet ? 'All requirements met!' : 'Collect all resources', 
-            this.x + this.width / 2, 
-            this.y + 185
-        );
         
-        // Show craft button if all requirements are met
-        const portalExists = this.isStage2 ? this.game.endPortal : this.game.portal;
-        this.craftButton.visible = allRequirementsMet && !portalExists;
-        
-        if (this.craftButton.visible) {
-            // Draw craft button
-            ctx.fillStyle = this.isStage2 ? '#00BFFF' : '#4CAF50';
-            ctx.fillRect(this.craftButton.x, this.craftButton.y, this.craftButton.width, this.craftButton.height);
-            
-            // Button border
-            ctx.strokeStyle = '#2C1D06';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(this.craftButton.x, this.craftButton.y, this.craftButton.width, this.craftButton.height);
-            
-            // Button text
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 16px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
+        if (this.isStage2) {
+            if (allRequirementsMet && !this.game.fortress) {
+                ctx.fillText('Creating Fortress...', this.x + this.width / 2, this.y + 185);
+            } else if (this.game.fortress) {
+                ctx.fillText('Fortress Found!', this.x + this.width / 2, this.y + 185);
+            } else {
+                ctx.fillText('Collect all resources', this.x + this.width / 2, this.y + 185);
+            }
+        } else {
             ctx.fillText(
-                this.isStage2 ? 'Create End Portal' : 'Create Portal', 
-                this.craftButton.x + this.craftButton.width / 2, 
-                this.craftButton.y + this.craftButton.height / 2
+                allRequirementsMet ? 'All requirements met!' : 'Collect all resources', 
+                this.x + this.width / 2, 
+                this.y + 185
             );
         }
         
@@ -375,9 +366,5 @@ export class CraftingPanel {
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'right';
         ctx.fillText(`${current}/${required}`, this.x + this.width - 15, this.y + yPos);
-    }
-
-    cleanup() {
-        this.game.canvas.removeEventListener('click', this.handleClick);
     }
 }

@@ -220,7 +220,8 @@ export var AssetLoader = /*#__PURE__*/ function() {
             // Add stage 2 assets
             'blaze': './assets/level3/blaze.png',
             'blazerod': './assets/level3/blaze_rod.png',
-            'arrow': './assets/level3/arrow.png'
+            'arrow': './assets/level3/arrow.png',
+            'fort': './assets/level3/fort.png'
         };
     }
     _create_class(AssetLoader, [

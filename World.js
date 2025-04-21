@@ -576,11 +576,6 @@ var World = /*#__PURE__*/ function() {
                         var screenX1 = item.x - cameraOffset;
                         // Only draw if visible on screen
                         if (screenX1 > -item.width && screenX1 < CANVAS_WIDTH) {
-                            // Debug for blazerod items
-                            if (item.type === 'blazerod') {
-                                console.log('Found blazerod item to render at:', screenX1, item.y);
-                            }
-                            
                             if (item.type === 'gold nugget') {
                                 this.drawGoldNugget(ctx, screenX1, item.y);
                             } else if (item.type === 'blazerod') {

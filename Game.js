@@ -931,7 +931,7 @@ var Game = /*#__PURE__*/ function() {
                 const item = this.world.addItem({
                     type: 'blazerod',
                     x: x,
-                    y: y + 30,
+                    y: y + 20,
                     width: 20,
                     height: 20
                 });
@@ -1022,6 +1022,16 @@ var Game = /*#__PURE__*/ function() {
                         // Check for portal collision
                         if (this.portal && this.portal.active) {
                             this.checkPortalCollision();
+                        }
+                        
+                        // Check for end portal (fort) collision
+                        if (this.endPortal && this.endPortal.active) {
+                            this.checkEndPortalCollision();
+                        }
+                        
+                        // Check for fortress collision
+                        if (this.fortress && this.fortress.active) {
+                            this.checkFortressCollision();
                         }
                     }
                 } else if (isQuiz) {
@@ -1210,6 +1220,43 @@ var Game = /*#__PURE__*/ function() {
                 // Render the portal if it exists
                 if (this.portal && this.portal.active) {
                     this.renderPortal();
+                }
+                
+                // Render the end portal (fort) if it exists
+                if (this.endPortal && this.endPortal.active) {
+                    this.renderEndPortal();
+                }
+                
+                // Render the fortress if it exists
+                if (this.fortress && this.fortress.active) {
+                    this.renderFortress();
+                }
+                
+                // Render victory message popup if it exists
+                if (this.victoryMessage && Date.now() - this.victoryMessage.time < this.victoryMessage.duration) {
+                    this.ctx.save();
+                    
+                    // Draw semi-transparent background
+                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                    this.ctx.fillRect(CANVAS_WIDTH/4, CANVAS_HEIGHT/3, CANVAS_WIDTH/2, CANVAS_HEIGHT/4);
+                    
+                    // Draw border
+                    this.ctx.strokeStyle = '#FFD700'; // Gold border
+                    this.ctx.lineWidth = 3;
+                    this.ctx.strokeRect(CANVAS_WIDTH/4, CANVAS_HEIGHT/3, CANVAS_WIDTH/2, CANVAS_HEIGHT/4);
+                    
+                    // Draw message text
+                    this.ctx.fillStyle = '#FFFFFF';
+                    this.ctx.font = 'bold 18px Arial';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText(
+                        this.victoryMessage.text, 
+                        CANVAS_WIDTH/2, 
+                        CANVAS_HEIGHT/2 - 10
+                    );
+                    
+                    this.ctx.restore();
                 }
                 
                 // Reset transformations if screen was shaking
@@ -1775,25 +1822,25 @@ var Game = /*#__PURE__*/ function() {
             value: function checkResourceCompletion() {
                 if (this.enteredPortal) {
                     // STAGE 2: Check for victory requirements
-                    if (this.resourceManager.checkVictoryRequirements(true)) {
-                        // All required resources collected for stage 2, show victory message
+                    if (this.resourceManager.checkVictoryRequirements(true) && !this.resourceRequirementsMet) {
+                        // All required resources collected for stage 2, show collection message
                         this.floatingTexts.push(new FloatingText(
-                            "All resources collected! Victory!", 
+                            "All resources collected! Creating fortress...", 
                             this.player.x, 
                             this.player.y - 60,
                             3000
                         ));
                         
-                        // Play victory sound
+                        // Play special sound
                         this.audioManager.play('collect', 1.5);
                         
-                        // Set resource completion flag
+                        // Set resource completion flag to prevent repeated checks
                         this.resourceRequirementsMet = true;
                         
-                        // Transition to victory screen after delay
-                        setTimeout(() => {
-                            this.gameState = GAME_STATE.VICTORY;
-                        }, 3000);
+                        // Create fortress in front of player
+                        const fortressX = this.player.x + 250;
+                        const fortressY = this.player.y - 50;
+                        this.createFortress(fortressX, fortressY);
                     }
                 } else {
                     // STAGE 1: Check for portal creation requirements
@@ -2095,6 +2142,426 @@ var Game = /*#__PURE__*/ function() {
                     );
                     this.floatingTexts.push(gameOverText);
                 }
+            }
+        },
+        {
+            key: "createEndPortal",
+            value: function createEndPortal(x, y) {
+                // Create a fort object instead of a portal
+                this.endPortal = {
+                    x: x,
+                    y: y,
+                    width: 160,
+                    height: 140,
+                    active: true,
+                    creationTime: Date.now(),
+                    type: 'fort'
+                };
+                
+                // Play fort creation sound
+                this.audioManager.play('collect', 1.2);
+                
+                // Add screen shake effect
+                this.applyScreenShake(7);
+                
+                // Add floating text
+                this.floatingTexts.push(new FloatingText(
+                    "Fort created! Enter to complete the game!", 
+                    x, 
+                    y - 40,
+                    3000, // longer duration
+                    { color: '#FFA500' } // Orange color
+                ));
+                
+                console.log("Fort created at", x, y);
+                
+                // Preload fort image if not already loaded
+                if (!this.assetLoader.getAsset('fort')) {
+                    this.assetLoader.loadImage('fort', './assets/level3/fort.png')
+                        .then(() => {
+                            console.log("Fort image loaded successfully");
+                        })
+                        .catch(err => {
+                            console.error("Failed to load fort image:", err);
+                        });
+                }
+            }
+        },
+        
+        {
+            key: "renderEndPortal",
+            value: function renderEndPortal() {
+                if (!this.endPortal) return;
+                
+                // Calculate fort screen position
+                const fortScreenX = this.endPortal.x - this.cameraOffset;
+                
+                // Get fort image if it exists
+                const fortImage = this.assetLoader.getAsset('fort');
+                
+                if (fortImage) {
+                    // Draw fort image
+                    this.ctx.save();
+                    
+                    // Add subtle glow effect
+                    const elapsedTime = Date.now() - this.endPortal.creationTime;
+                    const glowIntensity = 0.85 + Math.sin(elapsedTime / 300) * 0.15;
+                    
+                    // Draw glow
+                    this.ctx.globalAlpha = glowIntensity;
+                    this.ctx.shadowColor = '#FFA500'; // Orange glow
+                    this.ctx.shadowBlur = 10;
+                    
+                    // Draw the fort
+                    this.ctx.drawImage(
+                        fortImage, 
+                        fortScreenX, 
+                        this.endPortal.y, 
+                        this.endPortal.width, 
+                        this.endPortal.height
+                    );
+                    
+                    this.ctx.restore();
+                } else {
+                    // Fallback if no fort image is available
+                    this.ctx.save();
+                    
+                    // Draw a simple fort shape
+                    this.ctx.fillStyle = '#8B4513'; // Brown color for fort
+                    
+                    // Main fort body
+                    this.ctx.fillRect(
+                        fortScreenX, 
+                        this.endPortal.y, 
+                        this.endPortal.width, 
+                        this.endPortal.height
+                    );
+                    
+                    // Fort battlements
+                    for (let i = 0; i < 5; i++) {
+                        this.ctx.fillRect(
+                            fortScreenX + (i * this.endPortal.width/5), 
+                            this.endPortal.y - 15, 
+                            this.endPortal.width/10, 
+                            15
+                        );
+                    }
+                    
+                    // Door
+                    this.ctx.fillStyle = '#000000';
+                    this.ctx.fillRect(
+                        fortScreenX + this.endPortal.width/3, 
+                        this.endPortal.y + this.endPortal.height - 50, 
+                        this.endPortal.width/3, 
+                        50
+                    );
+                    
+                    this.ctx.restore();
+                }
+                
+                // Add particles effect around the fort (less than around portal)
+                if (Math.random() < 0.1) {
+                    const particleX = fortScreenX + Math.random() * this.endPortal.width;
+                    const particleY = this.endPortal.y + Math.random() * this.endPortal.height;
+                    
+                    this.floatingTexts.push(new FloatingText(
+                        "✧", 
+                        particleX + this.cameraOffset, 
+                        particleY,
+                        1000, // duration
+                        {
+                            color: '#FFA500',
+                            fontSize: 10 + Math.random() * 6,
+                            velocityY: -0.5 - Math.random(),
+                            velocityX: (Math.random() - 0.5) * 1.5
+                        }
+                    ));
+                }
+            }
+        },
+        
+        {
+            key: "checkEndPortalCollision",
+            value: function checkEndPortalCollision() {
+                // Skip if no end portal exists or player has already entered
+                if (!this.endPortal || !this.endPortal.active || this.gameState === GAME_STATE.VICTORY) {
+                    return false;
+                }
+                
+                // Check if player is colliding with end portal (fort)
+                const playerRect = {
+                    x: this.player.x,
+                    y: this.player.y,
+                    width: this.player.width,
+                    height: this.player.height
+                };
+                
+                const fortRect = {
+                    x: this.endPortal.x,
+                    y: this.endPortal.y,
+                    width: this.endPortal.width,
+                    height: this.endPortal.height
+                };
+                
+                // If player collides with fort
+                if (this.isColliding(playerRect, fortRect)) {
+                    // Play victory sound
+                    this.audioManager.play('collect', 2.0);
+                    
+                    // Add floating text
+                    this.floatingTexts.push(
+                        new FloatingText(
+                            "Victory! Game Complete!", 
+                            this.player.x, 
+                            this.player.y - 60,
+                            3000,
+                            { color: '#FFD700', fontSize: 24 } // Gold color, larger text
+                        )
+                    );
+                    
+                    // Apply screen shake for effect
+                    this.applyScreenShake(10);
+                    
+                    // Display a popup message
+                    this.victoryMessage = {
+                        text: "Congratulations! Next level to be designed by Sandro!",
+                        time: Date.now(),
+                        duration: 5000 // Show for 5 seconds before transition
+                    };
+                    
+                    // Transition to victory screen after delay
+                    setTimeout(() => {
+                        this.gameState = GAME_STATE.VICTORY;
+                    }, 5000);
+                    
+                    return true;
+                }
+                
+                return false;
+            }
+        },
+        {
+            key: "createFortress",
+            value: function createFortress(x, y) {
+                // Create a fortress object
+                this.fortress = {
+                    x: x,
+                    y: GROUND_LEVEL - 120, // Fix y position to be relative to ground level, slightly down
+                    width: 200,
+                    height: 180,
+                    active: true,
+                    creationTime: Date.now(),
+                    type: 'fortress'
+                };
+                // Play fortress discovery sound
+                this.audioManager.play('collect', 1.2);
+                
+                // Add screen shake effect
+                this.applyScreenShake(8);
+                
+                // Add floating text
+                this.floatingTexts.push(new FloatingText(
+                    "Nether Fortress found! Enter to find the Blaze Spawner!", 
+                    x, 
+                    y - 50,
+                    3500, // longer duration
+                    { color: '#FF5500' } // Orange-red color
+                ));
+                
+                console.log("Fortress created at", x, y);
+                
+                // Preload fortress image if not already loaded
+                if (!this.assetLoader.getAsset('fortress')) {
+                    this.assetLoader.loadImage('fortress', './assets/level3/fortress.png')
+                        .then(() => {
+                            console.log("Fortress image loaded successfully");
+                        })
+                        .catch(err => {
+                            console.error("Failed to load fortress image:", err);
+                        });
+                }
+                
+                // Add a method to check for fortress collision
+                this.fortressCheckInterval = setInterval(() => {
+                    this.checkFortressCollision();
+                }, 100);
+            }
+        },
+        
+        {
+            key: "checkFortressCollision",
+            value: function checkFortressCollision() {
+                // Skip if no fortress exists or player has already entered
+                if (!this.fortress || !this.fortress.active) {
+                    return false;
+                }
+                
+                // Check if player is colliding with fortress
+                const playerRect = {
+                    x: this.player.x,
+                    y: this.player.y,
+                    width: this.player.width,
+                    height: this.player.height
+                };
+                
+                const fortressRect = {
+                    x: this.fortress.x,
+                    y: this.fortress.y,
+                    width: this.fortress.width,
+                    height: this.fortress.height
+                };
+                
+                // If player collides with fortress
+                if (this.isColliding(playerRect, fortressRect)) {
+                    // Play discovery sound
+                    this.audioManager.play('collect', 1.5);
+                    
+                    // Show "Found Blaze Spawner" message
+                    this.floatingTexts.push(new FloatingText(
+                        "Found Blaze Spawner! More Blazes will appear now!", 
+                        this.player.x, 
+                        this.player.y - 70,
+                        4000, // longer duration
+                        { color: '#FFAA00', fontSize: 20 } // Amber color, larger text
+                    ));
+                    
+                    // Increase blaze spawn rate
+                    this.blazeSpawnRate = 3; // Increase the rate
+                    
+                    // Spawn a few blazes immediately
+                    for (let i = 0; i < 3; i++) {
+                        setTimeout(() => {
+                            const spawnX = this.fortress.x + (Math.random() * this.fortress.width);
+                            const spawnY = this.fortress.y + (Math.random() * this.fortress.height);
+                            this.spawnBlaze(spawnX, spawnY);
+                        }, i * 800);
+                    }
+                    
+                    // Deactivate fortress collision detection
+                    this.fortress.active = false;
+                    clearInterval(this.fortressCheckInterval);
+                    
+                    return true;
+                }
+                
+                return false;
+            }
+        },
+        
+        {
+            key: "renderFortress",
+            value: function renderFortress() {
+                if (!this.fortress) return;
+                
+                // Calculate fortress screen position
+                const fortressScreenX = this.fortress.x - this.cameraOffset;
+                
+                // Get fortress image if it exists
+                const fortressImage = this.assetLoader.getAsset('fortress');
+                
+                if (fortressImage) {
+                    // Draw fortress image
+                    this.ctx.save();
+                    
+                    // Add subtle glow effect
+                    const elapsedTime = Date.now() - this.fortress.creationTime;
+                    const glowIntensity = 0.85 + Math.sin(elapsedTime / 300) * 0.15;
+                    
+                    // Draw glow
+                    this.ctx.globalAlpha = glowIntensity;
+                    this.ctx.shadowColor = '#FF5500'; // Orange-red glow
+                    this.ctx.shadowBlur = 12;
+                    
+                    // Draw the fortress
+                    this.ctx.drawImage(
+                        fortressImage, 
+                        fortressScreenX, 
+                        this.fortress.y, 
+                        this.fortress.width, 
+                        this.fortress.height
+                    );
+                    
+                    this.ctx.restore();
+                } else {
+                    // Fallback if no fortress image is available
+                    this.ctx.save();
+                    
+                    // Draw a simple fortress shape
+                    this.ctx.fillStyle = '#8B0000'; // Dark red color for fortress
+                    
+                    // Main fortress body
+                    this.ctx.fillRect(
+                        fortressScreenX, 
+                        this.fortress.y, 
+                        this.fortress.width, 
+                        this.fortress.height
+                    );
+                    
+                    // Fortress battlements
+                    for (let i = 0; i < 6; i++) {
+                        this.ctx.fillRect(
+                            fortressScreenX + (i * this.fortress.width/6), 
+                            this.fortress.y - 20, 
+                            this.fortress.width/12, 
+                            20
+                        );
+                    }
+                    
+                    // Gate
+                    this.ctx.fillStyle = '#550000';
+                    this.ctx.fillRect(
+                        fortressScreenX + this.fortress.width/3, 
+                        this.fortress.y + this.fortress.height - 60, 
+                        this.fortress.width/3, 
+                        60
+                    );
+                    
+                    this.ctx.restore();
+                }
+                
+                // Add fire particles effect around the fortress
+                if (Math.random() < 0.2) {
+                    const particleX = fortressScreenX + Math.random() * this.fortress.width;
+                    const particleY = this.fortress.y + Math.random() * this.fortress.height;
+                    
+                    this.floatingTexts.push(new FloatingText(
+                        "✧", 
+                        particleX + this.cameraOffset, 
+                        particleY,
+                        800, // duration
+                        {
+                            color: Math.random() > 0.5 ? '#FF5500' : '#FFAA00',
+                            fontSize: 8 + Math.random() * 6,
+                            velocityY: -0.7 - Math.random(),
+                            velocityX: (Math.random() - 0.5) * 1.5
+                        }
+                    ));
+                }
+            }
+        },
+        
+        {
+            key: "spawnBlaze",
+            value: function spawnBlaze(x, y) {
+                // Create a new blaze enemy
+                const blaze = {
+                    x: x,
+                    y: y,
+                    width: 40,
+                    height: 60,
+                    velocityX: (Math.random() - 0.5) * 2,
+                    velocityY: (Math.random() - 0.5) * 2,
+                    health: 3,
+                    damage: 1,
+                    type: 'blaze',
+                    lastShot: 0,
+                    shotInterval: 2000 + Math.random() * 1000
+                };
+                
+                // Add to enemies array
+                this.enemies.push(blaze);
+                
+                return blaze;
             }
         }
     ]);
