@@ -163,8 +163,21 @@ var World = /*#__PURE__*/ function() {
                     // Skip the ground platform (index 0)
                     if (index === 0) return;
 
-                    // Use gold nuggets instead of gold blocks
-                    const resourceType = 'gold nugget';
+                    // Determine resource type based on platform index
+                    let resourceType;
+                    
+                    // Special placement for our new required resources
+                    if (index === 2) { // Second platform position
+                        resourceType = 'crossbow';
+                    } else if (index === 4) { // Fourth platform position
+                        resourceType = 'shield';
+                    } else if (index === 6 || index === 8 || index === 10 || index === 12) { 
+                        // Add obsidian blocks on multiple platforms since we need 4
+                        resourceType = 'obsidian';
+                    } else {
+                        // Default to gold nuggets for remaining platforms
+                        resourceType = 'gold nugget';
+                    }
 
                     // Position mining spot near the platform
                     const miningSpot = new MiningSpot(

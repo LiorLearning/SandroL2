@@ -5,13 +5,25 @@ export class CraftingPanel {
         this.resources = resources;
         this.game = game;
         this.width = 200;
-        this.height = 150;
+        this.height = 200; // Increased height to fit all requirements
         this.x = CANVAS_WIDTH - this.width - 10;
         this.y = 10;
-
-        // Bind click handler
+        
+        // Resource requirements
+        this.requirements = {
+            crossbow: 1,
+            shield: 1,
+            obsidian: 4
+        };
+        
+        // Remove the click handler as we're no longer using a craft button
         this.handleClick = this.handleClick.bind(this);
         this.game.canvas.addEventListener('click', this.handleClick);
+        
+        // Track highlighted resources
+        this.highlightedResource = null;
+        this.highlightTimer = 0;
+        this.highlightDuration = 1000; // 1 second highlight
     }
 
     updateResources(resources) {
@@ -19,72 +31,13 @@ export class CraftingPanel {
     }
 
     highlightResource(resourceType) {
-        // This method would typically highlight a resource
-        // It's referenced in the codebase but not implemented
+        this.highlightedResource = resourceType;
+        this.highlightTimer = this.highlightDuration;
     }
 
     handleClick(e) {
-        const rect = this.game.canvas.getBoundingClientRect();
-        
-        // Calculate scale factors
-        const scaleX = this.game.canvas.width / rect.width;
-        const scaleY = this.game.canvas.height / rect.height;
-        
-        // Apply scaling to mouse coordinates
-        const mouseX = (e.clientX - rect.left) * scaleX;
-        const mouseY = (e.clientY - rect.top) * scaleY;
-
-        // Get button bounds (same as in drawCraftButton)
-        const buttonWidth = 120;
-        const buttonHeight = 30;
-        const buttonX = this.x + (this.width - buttonWidth) / 2;
-        const buttonY = this.y + 110;
-
-        // Add some tolerance for easier clicking
-        const tolerance = 10;
-        const isInButton = mouseX >= buttonX - tolerance &&
-                          mouseX <= buttonX + buttonWidth + tolerance &&
-                          mouseY >= buttonY - tolerance &&
-                          mouseY <= buttonY + buttonHeight + tolerance;
-
-        console.log('Click detected!');
-        console.log('Raw mouse position:', { x: e.clientX - rect.left, y: e.clientY - rect.top });
-        console.log('Scaled mouse position:', { x: mouseX, y: mouseY });
-        console.log('Button position:', { x: buttonX, y: buttonY });
-        console.log('Is click in button area:', isInButton);
-
-        if (isInButton) {
-            console.log('Click is within button bounds!');
-            
-            // Check if we have enough gold
-            if (this.resources.goldNuggets >= 36) {
-                console.log('Starting crafting process...');
-                
-                // Update resources
-                this.resources.goldNuggets -= 36;
-                this.game.resources.goldNuggets -= 36;
-                
-                // Update player
-                this.game.player.hasGoldenBoots = true;
-                
-                // Force immediate visual update
-                if (this.game.player.render && this.game.ctx) {
-                    this.game.player.render(this.game.ctx);
-                }
-                
-                // Trigger game update
-                if (this.game.update) {
-                    this.game.update(Date.now());
-                }
-
-                // Force redraw
-                requestAnimationFrame(() => {
-                    if (this.game.draw) {
-                        this.game.draw();
-                    }
-                });
-            }
-        }
+        // Keep this method empty but present to avoid breaking existing code
+        // We're no longer using a craft button
     }
 
     render(ctx) {
@@ -93,51 +46,80 @@ export class CraftingPanel {
         ctx.fillRect(this.x, this.y, this.width, this.height);
 
         // Draw title
-        ctx.fillStyle = '#FFD700';
+        ctx.fillStyle = '#FFD700'; // Gold color for title
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('Crafting', this.x + this.width / 2, this.y + 25);
+        ctx.fillText('Required Resources', this.x + this.width / 2, this.y + 25);
 
-        // Draw gold count
-        ctx.fillStyle = 'white';
-        ctx.font = '14px Arial';
-        ctx.textAlign = 'left';
-        ctx.fillText('Gold Nuggets:', this.x + 15, this.y + 50);
-        ctx.textAlign = 'right';
-        ctx.fillText(`${this.resources.goldNuggets || 0}/36`, this.x + this.width - 15, this.y + 50);
+        // Draw divider line
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.beginPath();
+        ctx.moveTo(this.x + 10, this.y + 35);
+        ctx.lineTo(this.x + this.width - 10, this.y + 35);
+        ctx.stroke();
 
-        // Draw boots info
-        ctx.fillStyle = '#FFD700';
-        ctx.textAlign = 'left';
-        ctx.fillText('Golden Boots:', this.x + 15, this.y + 80);
-        ctx.fillStyle = 'white';
-        ctx.textAlign = 'right';
-        ctx.fillText('36 gold', this.x + this.width - 15, this.y + 80);
+        // Draw resource requirements with status indicators
+        this.renderResourceRequirement(ctx, 'Crossbow', 'crossbow', 1, 55);
+        this.renderResourceRequirement(ctx, 'Shield', 'shield', 1, 85);
+        this.renderResourceRequirement(ctx, 'Obsidian', 'obsidian', 4, 115);
 
-        // Draw craft button
-        const buttonWidth = 120;
-        const buttonHeight = 30;
-        const buttonX = this.x + (this.width - buttonWidth) / 2;
-        const buttonY = this.y + 110;
+        // Draw completion status
+        const allRequirementsMet = 
+            (this.resources.crossbow || 0) >= this.requirements.crossbow &&
+            (this.resources.shield || 0) >= this.requirements.shield &&
+            (this.resources.obsidian || 0) >= this.requirements.obsidian;
 
-        // Button background
-        const canCraft = (this.resources.goldNuggets || 0) >= 36;
-        
-        // Draw button hitbox for debugging
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(buttonX - 10, buttonY - 10, buttonWidth + 20, buttonHeight + 20);
-        
-        // Draw actual button
-        ctx.fillStyle = canCraft ? '#4CAF50' : '#555555';
-        ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
-
-        // Button text
-        ctx.fillStyle = 'white';
+        ctx.fillStyle = allRequirementsMet ? '#4CAF50' : '#FFCC33';
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(canCraft ? 'Craft' : 'Need 36 Gold', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+        ctx.fillText(
+            allRequirementsMet ? 'All requirements met!' : 'Collect all resources', 
+            this.x + this.width / 2, 
+            this.y + 155
+        );
+
+        // Draw instructions
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.font = '12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Mine for items in the world', this.x + this.width / 2, this.y + 175);
+    }
+
+    renderResourceRequirement(ctx, label, resourceType, required, yPos) {
+        const current = this.resources[resourceType] || 0;
+        const isMet = current >= required;
+        const isHighlighted = this.highlightedResource === resourceType && this.highlightTimer > 0;
+        
+        // Background for highlighted resources
+        if (isHighlighted) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.fillRect(this.x + 5, this.y + yPos - 15, this.width - 10, 25);
+        }
+        
+        // Resource label
+        ctx.fillStyle = isMet ? '#4CAF50' : 'white'; // Green if requirement met
+        ctx.font = '14px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillText(label + ':', this.x + 15, this.y + yPos);
+        
+        // Resource count
+        ctx.textAlign = 'right';
+        ctx.fillText(`${current}/${required}`, this.x + this.width - 15, this.y + yPos);
+
+        // Progress bar
+        const barWidth = 170;
+        const barHeight = 6;
+        const barX = this.x + 15;
+        const barY = this.y + yPos + 8;
+        
+        // Background bar
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.fillRect(barX, barY, barWidth, barHeight);
+        
+        // Progress
+        const progress = Math.min(current / required, 1);
+        ctx.fillStyle = isMet ? '#4CAF50' : '#3498db';
+        ctx.fillRect(barX, barY, barWidth * progress, barHeight);
     }
 
     cleanup() {

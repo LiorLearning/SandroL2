@@ -22,7 +22,10 @@ export var RESOURCE_TYPES = [
     'sticks',
     'strings',
     'flint',
-    'feather'
+    'feather',
+    'crossbow',
+    'shield',
+    'obsidian'
 ];
 export var MINING_REQUIRED_CLICKS = 5; // Number of times to press E to complete mining
 export var GOLD_BOOTS_COST = 36; // Gold nuggets required to craft golden boots

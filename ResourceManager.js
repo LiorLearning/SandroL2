@@ -70,7 +70,10 @@ export var ResourceManager = /*#__PURE__*/ function() {
         _class_call_check(this, ResourceManager);
         this.game = game;
         this.resources = {
-            goldNuggets: 0 // Only tracking gold nuggets
+            goldNuggets: 0, // Only tracking gold nuggets
+            crossbow: 0,    // Add crossbow resource
+            shield: 0,      // Add shield resource
+            obsidian: 0     // Add obsidian resource
         };
         // Simplified crafting requirements
         this.craftingRequirements = {
@@ -265,7 +268,10 @@ export var ResourceManager = /*#__PURE__*/ function() {
             key: "getResourceColor",
             value: function getResourceColor(type) {
                 var resourceColors = {
-                    goldNuggets: '#FFD700' // Gold
+                    goldNuggets: '#FFD700', // Gold
+                    crossbow: '#8B4513',    // Brown
+                    shield: '#C0C0C0',      // Silver
+                    obsidian: '#301934'     // Dark purple for obsidian
                 };
                 return resourceColors[type] || 'white';
             }

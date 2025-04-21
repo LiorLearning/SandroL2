@@ -88,23 +88,45 @@ var MiningSpot = /*#__PURE__*/ function() {
                 if (screenX < -this.width || screenX > ctx.canvas.width) {
                     return;
                 }
-                // Get mining block texture
-                var greyCubeTexture = assetLoader === null || assetLoader === void 0 ? void 0 : assetLoader.getAsset('greyCubeBlock');
+                
+                // Get mining block texture based on resource type
+                var blockTexture;
+                var blockColor;
+                
+                switch(this.type) {
+                    case 'crossbow':
+                        blockTexture = assetLoader?.getAsset('crossbow') || assetLoader?.getAsset('greyCubeBlock');
+                        blockColor = '#8B4513'; // Brown
+                        break;
+                    case 'shield':
+                        blockTexture = assetLoader?.getAsset('shield') || assetLoader?.getAsset('greyCubeBlock');
+                        blockColor = '#C0C0C0'; // Silver
+                        break;
+                    case 'obsidian':
+                        blockTexture = assetLoader?.getAsset('obsidian') || assetLoader?.getAsset('greyCubeBlock');
+                        blockColor = '#301934'; // Dark purple
+                        break;
+                    default:
+                        blockTexture = assetLoader?.getAsset('greyCubeBlock');
+                        blockColor = '#A9A9A9'; // Gray
+                }
+                
                 var ironOreTexture = assetLoader === null || assetLoader === void 0 ? void 0 : assetLoader.getAsset('ironOre'); // Keep for fallback
+
                 // Draw mining spot
                 if (this.isRespawning) {
                     // Show respawning indicator
                     var respawnProgress = this.respawnTimer / this.respawnDuration;
                     // Base box with darker color (fallback if image not available)
-                    if (!greyCubeTexture && !ironOreTexture) {
+                    if (!blockTexture && !ironOreTexture) {
                         ctx.fillStyle = '#5D4037'; // Darker brown for respawning
                         ctx.fillRect(screenX, this.y, this.width, this.height);
                     } else {
-                        // Draw faded iron ore texture when respawning
+                        // Draw faded texture when respawning
                         ctx.globalAlpha = 0.4;
-                        // Use grey cube texture if available, otherwise fall back to iron ore
-                        if (greyCubeTexture) {
-                            ctx.drawImage(greyCubeTexture, screenX, this.y, this.width, this.height);
+                        // Use proper texture if available, otherwise fall back to iron ore
+                        if (blockTexture) {
+                            ctx.drawImage(blockTexture, screenX, this.y, this.width, this.height);
                         } else if (ironOreTexture) {
                             ctx.drawImage(ironOreTexture, screenX, this.y, this.width, this.height);
                         }
@@ -127,13 +149,20 @@ var MiningSpot = /*#__PURE__*/ function() {
                     ctx.textAlign = 'center';
                     ctx.fillText('Respawning...', screenX + this.width / 2, barY + barHeight + 12);
                 } else if (!this.mined) {
-                    if (greyCubeTexture || ironOreTexture) {
-                        // Draw grey cube texture (preferred) or fall back to iron ore texture
-                        if (greyCubeTexture) {
-                            ctx.drawImage(greyCubeTexture, screenX, this.y, this.width, this.height);
+                    if (blockTexture || ironOreTexture) {
+                        // Draw proper texture (preferred) or fall back to iron ore texture
+                        if (blockTexture) {
+                            ctx.drawImage(blockTexture, screenX, this.y, this.width, this.height);
                         } else if (ironOreTexture) {
                             ctx.drawImage(ironOreTexture, screenX, this.y, this.width, this.height);
                         }
+                        
+                        // Add resource type label
+                        ctx.fillStyle = 'white';
+                        ctx.font = '10px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(this.type, screenX + this.width / 2, this.y - 5);
+                        
                         // Add 2D mining progress animation when mining
                         if (this.clickCount > 0) {
                             // Add darker overlay to show damage

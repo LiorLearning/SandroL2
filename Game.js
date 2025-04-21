@@ -1,3 +1,18 @@
+import Player from './Player.js';
+import World from './World.js';
+import { CraftingPanel } from './CraftingPanel.js';
+import TouchControls from './TouchControls.js';
+import WelcomeScreen from './WelcomeScreen.js';
+import VictoryScreen from './VictoryScreen.js';
+import { AssetLoader } from './AssetLoader.js';
+import { drawBasaltPillar } from './netherUtils.js';
+import { AudioManager } from './AudioManager.js';
+import { CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_LEVEL, GAME_STATE, MINING_REQUIRED_CLICKS } from './constants.js';
+import { FloatingText } from './FloatingText.js';
+import QuizPanel from './QuizPanel.js';
+import Enderman from './Endermen.js';
+import { ResourceManager } from './ResourceManager.js';
+
 function _array_like_to_array(arr, len) {
     if (len == null || len > arr.length) len = arr.length;
     for(var i = 0, arr2 = new Array(len); i < len; i++)arr2[i] = arr[i];
@@ -187,59 +202,46 @@ function _ts_generator(thisArg, body) {
         };
     }
 }
-import Player from './Player.js';
-import World from './World.js';
-import { CraftingPanel } from './CraftingPanel.js';
-import TouchControls from './TouchControls.js';
-import WelcomeScreen from './WelcomeScreen.js';
-import VictoryScreen from './VictoryScreen.js';
-import { AssetLoader } from './AssetLoader.js';
-import { drawBasaltPillar } from './netherUtils.js';
-import { AudioManager } from './AudioManager.js';
-import { CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_LEVEL, GAME_STATE, MINING_REQUIRED_CLICKS } from './constants.js';
-import { FloatingText } from './FloatingText.js';
-import QuizPanel from './QuizPanel.js';
-import Enderman from './Endermen.js';
 var Game = /*#__PURE__*/ function() {
     "use strict";
     function Game(container) {
         _class_call_check(this, Game);
-        Object.assign(this, {
-            container: container,
-            assetLoader: new AssetLoader(),
-            audioManager: new AudioManager(),
-            assetsLoaded: false,
-            isLoading: true,
-            floatingTextClass: FloatingText,
-            cameraOffset: 0,
-            // Create portal at initialization with proper initial state
-            portal: {
-                x: CANVAS_WIDTH - 200,
-                y: GROUND_LEVEL - 120,
-                width: 80,
-                height: 120,
-                active: false
-            },
-            // Initialize empty endermen array - will be populated when game starts
-            endermen: [],
-            // Nether theme colors
-            _netherColors: {
-                lava: '#FF4500',
-                netherrack: '#6B2D2D',
-                soulsand: '#4A3A3A',
-                glow: '#FF7F50',
-                basalt: '#3A3A3A'
-            },
-            // Environment elements
-            _lavaParticles: [],
-            _floatingEmbers: [],
-            _endermanDistance: 0,
-            bootsCrafted: false
-        });
-        // Pre-bind methods
-        this._handleKeyDown = this._handleKeyDown.bind(this);
-        this._handleKeyUp = this._handleKeyUp.bind(this);
+        this.container = container;
+        this.canvas = null;
+        this.ctx = null;
+        this.player = null;
+        this.world = null;
+        this.welcome = null;
+        this.victoryScreen = null;
+        this.touchControls = null;
+        this.craftingPanel = null;
+        this.quizPanel = null;
+        this.audioManager = null;
+        this.gameState = GAME_STATE.WELCOME;
+        this.initialized = false;
+        this.isLoading = true;
+        this.lastTimestamp = 0;
+        this.floatingTexts = [];
+        this.keyStates = {};
+        this.cameraOffset = 0;
+        this.screenShakeIntensity = 0;
+        this.screenShakeTimer = 0;
+        this.assetLoader = new AssetLoader();
+        this.audioManager = new AudioManager();
+        this.resourceManager = null; // Will be initialized later
+        this.resourceRequirementsMet = false;
+        this.resourceCompletionMessage = null;
         this._boundUpdate = this.update.bind(this);
+        
+        // Initialize Nether colors
+        this._netherColors = {
+            netherrack: '#5C1F1E',
+            soulsand: '#836A5C',
+            lava: '#FF4500',
+            glow: '#FFA500'
+        };
+
+        // Initialize
         this.initializeGame(container);
     }
     _create_class(Game, [
@@ -286,8 +288,14 @@ var Game = /*#__PURE__*/ function() {
                                     strings: 0,
                                     flint: 0,
                                     feather: 0,
-                                    goldNuggets: 0
+                                    crossbow: 0,
+                                    shield: 0,
+                                    obsidian: 0
                                 };
+                                
+                                // Initialize resource manager
+                                _this.resourceManager = new ResourceManager(_this);
+                                
                                 _this.world = new World(_this.assetLoader);
                                 _this.player = new Player(100, GROUND_LEVEL);
                                 _this.player.game = _this; // Add reference to game for asset access
@@ -295,7 +303,7 @@ var Game = /*#__PURE__*/ function() {
                                 // Set the game reference on the world object for endermen updates
                                 _this.world.game = _this;
                                 
-                                _this.craftingPanel = new CraftingPanel(_this.resources, _this);
+                                _this.craftingPanel = new CraftingPanel(_this.resourceManager.getResources(), _this);
                                 _this.quizPanel = new QuizPanel(_this);
                                 _this.floatingTexts = [];
                                 
@@ -304,17 +312,6 @@ var Game = /*#__PURE__*/ function() {
                                 
                                 // Initialize endermen as empty array - will populate when game starts
                                 _this.endermen = [];
-                                
-                                // if (platforms && platforms.length >= 3) {
-                                //     _this.endermen.push(new Enderman(platforms[0].x + 50, platforms[0].x + 20, platforms[0].x + platforms[0].width - 20, platforms[0]));
-                                //     _this.endermen.push(new Enderman(platforms[1].x + 50, platforms[1].x + 20, platforms[1].x + platforms[1].width - 20, platforms[1]));
-                                //     _this.endermen.push(new Enderman(platforms[2].x + 50, platforms[2].x + 20, platforms[2].x + platforms[2].width - 20, platforms[2]));
-                                // } else {
-                                //     // Fallback if platforms aren't available
-                                //     _this.endermen.push(new Enderman(300, 200, 400));
-                                //     _this.endermen.push(new Enderman(600, 500, 700));
-                                //     _this.endermen.push(new Enderman(900, 800, 1000));
-                                // }
                                 
                                 _this.gameState = GAME_STATE.WELCOME; // Start with welcome screen
                                 _this.isGameActive = false; // For backward compatibility
@@ -325,44 +322,6 @@ var Game = /*#__PURE__*/ function() {
                                 _this.lastTimestamp = 0;
                                 _this.isLoading = false;
                                 _this.bowCrafted = false;
-                                // Boots crafting completion callback
-                                _this.onBootsCrafted = function() {
-                                    console.log('onBootsCrafted called - Starting portal activation');
-                                    
-                                    _this.bootsCrafted = true;
-                                    _this.player.hasGoldenBoots = true;
-                                    _this.player.speed *= 1.5;
-                                    _this.player.jumpForce *= 1.2;
-                                    
-                                    // Ensure portal exists and is properly positioned
-                                    if (!_this.portal) {
-                                        console.log('Creating new portal');
-                                        _this.portal = {
-                                            x: CANVAS_WIDTH - 200,
-                                            y: GROUND_LEVEL - 120,
-                                            width: 80,
-                                            height: 120,
-                                            active: true
-                                        };
-                                    } else {
-                                        console.log('Activating existing portal');
-                                        _this.portal.active = true;
-                                    }
-
-                                    // Debug logging
-                                    console.log('Portal state after boots crafted:', {
-                                        portalExists: !!_this.portal,
-                                        portalActive: _this.portal.active,
-                                        portalPosition: { x: _this.portal.x, y: _this.portal.y },
-                                        bootsCrafted: _this.bootsCrafted,
-                                        hasGoldenBoots: _this.player.hasGoldenBoots,
-                                        playerPosition: { x: _this.player.x, y: _this.player.y }
-                                    });
-
-                                    _this.floatingTexts.push(new FloatingText('Golden Boots Crafted! Portal has appeared!', _this.player.x, _this.player.y - 40));
-                                    _this.audioManager.play('collect', 1.2);
-                                    _this.applyScreenShake(5);
-                                };
                                 // Start game loop
                                 requestAnimationFrame(_this.update.bind(_this));
                                 return [
@@ -518,34 +477,26 @@ var Game = /*#__PURE__*/ function() {
                 if (!collectedItem) return this.tryMining();
 
                 const { type, x, y } = collectedItem;
-                const amount = type === 'gold nugget' ? 6 : 5;
-                const resourceType = type === 'gold nugget' ? 'goldNuggets' : type;
+                const amount = 1; // Standard amount for all resources
                 
-                this.resources[resourceType] = (this.resources[resourceType] || 0) + amount;
+                // Add to resources through the resource manager
+                this.resourceManager.addResource(type, amount);
+                
+                // Remove the item from the world
                 this.world.removeItem(collectedItem);
-                this.craftingPanel.updateResources(this.resources);
-                this.craftingPanel.highlightResource(resourceType);
                 
-                // Effects
-                const displayType = type === 'gold nugget' ? 'gold nuggets' : type;
-                this.floatingTexts.push(new FloatingText(`+${amount} ${displayType}`, x, y));
+                // Update crafting panel
+                this.craftingPanel.updateResources(this.resources);
+                this.craftingPanel.highlightResource(type);
+                
+                // Create floating text
+                this.floatingTexts.push(new FloatingText(`+${amount} ${type}`, x, y));
+                
+                // Play collection sound
                 this.audioManager.play('collect', 0.7 * (0.9 + Math.random() * 0.2));
                 
-                // Update enderman speeds if gold was collected
-                if (resourceType === 'gold nugget') {
-                    this.world.endermen.forEach(enderman => {
-                        enderman.updateSpeed(this.resources.goldNuggets || 0);
-                    });
-                }
-                
-                // Victory check
-                if (!this.bowCrafted && this.resources.sticks >= 10 && this.resources.strings >= 5 && 
-                    this.resources.flint >= 5 && this.resources.feather >= 5) {
-                    this.bowCrafted = true;
-                    this.gameState = GAME_STATE.VICTORY;
-                    this.victoryScreen.show();
-                    this.audioManager.play('collect', 1.5);
-                }
+                // Check if all required resources have been collected
+                this.checkResourceCompletion();
             }
         },
         {
@@ -583,16 +534,49 @@ var Game = /*#__PURE__*/ function() {
                             var progressText = "Mining: ".concat(miningSpot.clickCount, "/").concat(MINING_REQUIRED_CLICKS);
                             this.floatingTexts.push(new FloatingText(progressText, miningSpot.x, miningSpot.y - 20));
                             if (miningComplete) {
-                                // Mining is complete, show quiz
-                                // Reset screen shake before showing quiz
+                                // Mining is complete
+                                // Reset screen shake
                                 this.screenShakeIntensity = 0;
                                 this.screenShakeTimer = 0;
-                                this.gameState = GAME_STATE.QUIZ;
-                                this.quizPanel.show(miningSpot); // Pass the mining spot to the quiz panel
+                                
+                                // Add the appropriate resource based on mining spot type
+                                switch(miningSpot.type) {
+                                    case 'crossbow':
+                                        // Add crossbow to player's inventory
+                                        this.resourceManager.addResource('crossbow', 1);
+                                        this.floatingTexts.push(new FloatingText("Collected Crossbow!", miningSpot.x, miningSpot.y - 40));
+                                        break;
+                                    case 'shield':
+                                        // Add shield to player's inventory
+                                        this.resourceManager.addResource('shield', 1);
+                                        this.floatingTexts.push(new FloatingText("Collected Shield!", miningSpot.x, miningSpot.y - 40));
+                                        break;
+                                    case 'obsidian':
+                                        // Add obsidian to player's inventory
+                                        this.resourceManager.addResource('obsidian', 1);
+                                        this.floatingTexts.push(new FloatingText("Collected Obsidian Block!", miningSpot.x, miningSpot.y - 40));
+                                        break;
+                                    case 'gold nugget':
+                                        // Add gold nuggets to player's inventory
+                                        this.resourceManager.addResource('goldNuggets', 3);
+                                        this.floatingTexts.push(new FloatingText("Collected Gold Nuggets!", miningSpot.x, miningSpot.y - 40));
+                                        break;
+                                    default:
+                                        // Default behavior - show quiz
+                                        this.gameState = GAME_STATE.QUIZ;
+                                        this.quizPanel.show(miningSpot); // Pass the mining spot to the quiz panel
+                                        this.floatingTexts.push(new FloatingText("Mining complete!", miningSpot.x, miningSpot.y - 40));
+                                        break;
+                                }
+                                                               
                                 // Play completion sound
                                 this.audioManager.play('collect', 1.0);
-                                // Create floating text
-                                this.floatingTexts.push(new FloatingText("Mining complete!", miningSpot.x, miningSpot.y - 40));
+                                
+                                // Check if player has collected all required resources
+                                this.checkResourceCompletion();
+                                
+                                // Start the respawn timer for this mining spot
+                                miningSpot.startRespawnTimer();
                             }
                             return;
                         }
@@ -674,8 +658,8 @@ var Game = /*#__PURE__*/ function() {
                     this.touchControls.update();
                     this.updateFloatingTexts(deltaTime);
 
-                    // Enderman collision check (only if player is vulnerable and doesn't have golden boots)
-                    if (!this.player.isImmune && !this.player.hasGoldenBoots) {
+                    // Enderman collision check (only if player is not immune)
+                    if (!this.player.isImmune) {
                         const collidedEnderman = this.world.checkEndermanCollisions(this.player);
                         if (collidedEnderman) {
                             this.handleEndermanCollision();
@@ -685,9 +669,6 @@ var Game = /*#__PURE__*/ function() {
                             this.handleLavaCollision();
                         }
                     }
-                    
-                    // Check portal collision
-                    this.checkPortalCollision();
                 } else if (isQuiz) {
                     this.quizPanel.update(deltaTime);
                 }
@@ -716,17 +697,6 @@ var Game = /*#__PURE__*/ function() {
             key: "render",
             value: function render() {
                 if (this.isLoading) return;
-
-                // Debug portal state at start of render
-                console.log('Render cycle - Portal state:', {
-                    portalExists: !!this.portal,
-                    portalActive: this.portal?.active,
-                    hasGoldenBoots: this.player?.hasGoldenBoots,
-                    portalX: this.portal?.x,
-                    portalY: this.portal?.y,
-                    cameraOffset: this.cameraOffset,
-                    playerX: this.player?.x
-                });
 
                 // Batch clear and transform operations
                 this.ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -879,81 +849,19 @@ var Game = /*#__PURE__*/ function() {
                         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
                         this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
                         this.ctx.restore();
-                        this.bootsCraftingPanel.render(this.ctx);
                         break;
                 }
+                
+                // Render completion message if available
+                if (this.resourceCompletionMessage) {
+                    this.renderCompletionMessage();
+                }
+                
                 // Reset transformations if screen was shaking
                 if (shouldShake) {
                     this.ctx.restore();
                 }
 
-                // Only render portal during PLAYING state
-                if (this.gameState === GAME_STATE.PLAYING) {
-                    // Render portal with simplified condition and debug outline
-                    const portalShouldRender = this.portal && this.player.hasGoldenBoots;
-                    console.log('Portal render conditions:', {
-                        portalExists: !!this.portal,
-                        hasGoldenBoots: this.player?.hasGoldenBoots,
-                        shouldRender: portalShouldRender
-                    });
-
-                    if (portalShouldRender) {
-                        console.log('Attempting to render portal at:', {
-                            worldX: this.portal.x,
-                            worldY: this.portal.y,
-                            screenX: this.portal.x - this.cameraOffset,
-                            screenY: this.portal.y
-                        });
-
-                        this.ctx.save();
-                        this.ctx.translate(-this.cameraOffset, 0);
-                        
-                        // Debug outline to verify portal position
-                        this.ctx.strokeStyle = 'red';
-                        this.ctx.lineWidth = 2;
-                        this.ctx.strokeRect(
-                            this.portal.x - 2,
-                            this.portal.y - 2,
-                            this.portal.width + 4,
-                            this.portal.height + 4
-                        );
-                        
-                        // Portal glow effect
-                        const gradient = this.ctx.createRadialGradient(
-                            this.portal.x + this.portal.width/2, this.portal.y + this.portal.height/2, 0,
-                            this.portal.x + this.portal.width/2, this.portal.y + this.portal.height/2, this.portal.width
-                        );
-                        gradient.addColorStop(0, 'rgba(138, 43, 226, 0.6)');
-                        gradient.addColorStop(1, 'rgba(138, 43, 226, 0)');
-                        this.ctx.fillStyle = gradient;
-                        this.ctx.fillRect(
-                            this.portal.x - this.portal.width/2,
-                            this.portal.y - this.portal.height/2,
-                            this.portal.width * 2,
-                            this.portal.height * 2
-                        );
-                        
-                        // Portal frame
-                        this.ctx.fillStyle = '#4B0082';
-                        this.ctx.fillRect(this.portal.x, this.portal.y, this.portal.width, this.portal.height);
-                        
-                        // Portal swirl effect
-                        const time = Date.now() / 1000;
-                        this.ctx.fillStyle = 'rgba(147, 112, 219, 0.5)';
-                        for (let i = 0; i < 5; i++) {
-                            const offset = Math.sin(time + i) * 10;
-                            this.ctx.fillRect(
-                                this.portal.x + 10,
-                                this.portal.y + offset + i * 20,
-                                this.portal.width - 20,
-                                10
-                            );
-                        }
-                        
-                        this.ctx.restore();
-                        console.log('Portal rendered successfully');
-                    }
-                }
                 // Render endermen if they exist
                 if (this.endermen) {
                     this.ctx.save();
@@ -1059,12 +967,10 @@ var Game = /*#__PURE__*/ function() {
                 this.applyScreenShake(5);
                 
                 // Show damage text
-                const floatingText = new this.floatingTextClass(
+                const floatingText = new FloatingText(
+                    'Ouch!',
                     this.player.x + this.player.width / 2, 
                     this.player.y - 20,
-                    'Ouch!',
-                    '#FF0000',
-                    1500
                 );
                 this.floatingTexts.push(floatingText);
                 
@@ -1079,13 +985,10 @@ var Game = /*#__PURE__*/ function() {
                     this.player.health = 5;
                     
                     // Show game over text
-                    const gameOverText = new this.floatingTextClass(
-                        CANVAS_WIDTH / 2,
-                        CANVAS_HEIGHT / 2,
+                    const gameOverText = new FloatingText(
                         'Game Over - Try Again!',
-                        '#FF0000',
-                        2000,
-                        true
+                        CANVAS_WIDTH / 2,
+                        CANVAS_HEIGHT / 2
                     );
                     this.floatingTexts.push(gameOverText);
                 }
@@ -1332,39 +1235,8 @@ var Game = /*#__PURE__*/ function() {
         {
             key: "checkPortalCollision",
             value: function checkPortalCollision() {
-                if (!this.portal || !this.player.hasGoldenBoots) return;
-                
-                const playerRight = this.player.x + this.player.width;
-                const playerLeft = this.player.x;
-                const portalRight = this.portal.x + this.portal.width;
-                const portalLeft = this.portal.x;
-                
-                // Debug collision check
-                console.log('Portal Collision Check:', {
-                    playerPosition: { x: this.player.x, y: this.player.y },
-                    playerBounds: { left: playerLeft, right: playerRight },
-                    portalBounds: { left: portalLeft, right: portalRight },
-                    portalY: this.portal.y,
-                    portalHeight: this.portal.height,
-                    hasGoldenBoots: this.player.hasGoldenBoots
-                });
-
-                if (playerRight >= portalLeft && 
-                    playerLeft <= portalRight &&
-                    this.player.y + this.player.height >= this.portal.y &&
-                    this.player.y <= this.portal.y + this.portal.height) {
-                    
-                    console.log('Portal collision detected! Triggering victory.');
-                    
-                    // Player reached the portal - trigger victory
-                    this.gameState = GAME_STATE.VICTORY;
-                    this.victoryScreen.show();
-                    this.audioManager.play('collect', 1.5);
-                    
-                    // Add victory effect
-                    this.floatingTexts.push(new FloatingText('Level Complete!', this.player.x, this.player.y - 60));
-                    this.applyScreenShake(3);
-                }
+                // This method is now empty as we no longer use portals
+                // Victory is now determined by resource collection
             }
         },
         {
@@ -1450,16 +1322,92 @@ var Game = /*#__PURE__*/ function() {
             },
         },
         {
-            key: "checkPortalState",
-            value: function checkPortalState() {
-                    console.log('Portal State:', {
-                    portalExists: !!this.portal,
-                    portalActive: this.portal?.active,
-                    portalPosition: this.portal ? { x: this.portal.x, y: this.portal.y } : null,
-                    bootsCrafted: this.bootsCrafted,
-                    hasGoldenBoots: this.player?.hasGoldenBoots,
-                    gameState: this.gameState
-                });
+            key: "checkResourceCompletion",
+            value: function checkResourceCompletion() {
+                // Get current resources
+                var resources = this.resourceManager.getResources();
+                
+                // Check if player has collected all required resources
+                if (resources.crossbow >= 1 && resources.shield >= 1 && resources.obsidian >= 4) {
+                    // All required resources collected, show a message
+                    this.floatingTexts.push(new FloatingText(
+                        "All resources collected! You can proceed to the next stage.", 
+                        this.player.x, 
+                        this.player.y - 60,
+                        3000 // longer duration for important message
+                    ));
+                    
+                    // Play success sound
+                    this.audioManager.play('collect', 1.5);
+                    
+                    // Show visual indicator that requirements are met
+                    this.showResourceCompletionModal();
+                    
+                    // Trigger victory if requirements are met
+                    this.gameState = GAME_STATE.VICTORY;
+                    this.victoryScreen.show();
+                }
+            }
+        },
+        {
+            key: "showResourceCompletionModal",
+            value: function showResourceCompletionModal() {
+                // Set a flag indicating completion
+                this.resourceRequirementsMet = true;
+                
+                // Create a popup or notification
+                this.resourceCompletionMessage = {
+                    text: "You have collected all required resources!",
+                    subtext: "1 Crossbow, 1 Shield, 4 Obsidian Blocks",
+                    startTime: Date.now(),
+                    duration: 5000 // Show for 5 seconds
+                };
+            }
+        },
+        {
+            key: "renderCompletionMessage",
+            value: function renderCompletionMessage() {
+                var elapsedTime = Date.now() - this.resourceCompletionMessage.startTime;
+                
+                // Remove message if duration has passed
+                if (elapsedTime > this.resourceCompletionMessage.duration) {
+                    this.resourceCompletionMessage = null;
+                    return;
+                }
+                
+                // Calculate fade-in and fade-out
+                var alpha = 1.0;
+                var fadeInDuration = 500; // 0.5 second fade in
+                var fadeOutDuration = 1000; // 1 second fade out
+                
+                if (elapsedTime < fadeInDuration) {
+                    alpha = elapsedTime / fadeInDuration;
+                } else if (elapsedTime > this.resourceCompletionMessage.duration - fadeOutDuration) {
+                    alpha = (this.resourceCompletionMessage.duration - elapsedTime) / fadeOutDuration;
+                }
+                
+                // Center the message on screen
+                var messageX = CANVAS_WIDTH / 2;
+                var messageY = CANVAS_HEIGHT / 2 - 50;
+                
+                // Draw background
+                this.ctx.fillStyle = `rgba(0, 0, 0, ${alpha * 0.85})`;
+                this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                
+                // Draw message
+                this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                this.ctx.font = 'bold 24px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(this.resourceCompletionMessage.text, messageX, messageY);
+                
+                // Draw subtext
+                this.ctx.font = '18px Arial';
+                this.ctx.fillText(this.resourceCompletionMessage.subtext, messageX, messageY + 40);
+                
+                // Draw proceed message
+                this.ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
+                this.ctx.font = 'bold 20px Arial';
+                this.ctx.fillText('You may now proceed to the next stage!', messageX, messageY + 90);
             }
         }
     ]);
