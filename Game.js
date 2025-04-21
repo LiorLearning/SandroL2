@@ -222,6 +222,7 @@ var Game = /*#__PURE__*/ function() {
         this.isLoading = true;
         this.lastTimestamp = 0;
         this.floatingTexts = [];
+        this.floatingTextClass = FloatingText;
         this.keyStates = {};
         this.cameraOffset = 0;
         this.screenShakeIntensity = 0;
@@ -473,8 +474,14 @@ var Game = /*#__PURE__*/ function() {
         {
             key: "tryCollectResource",
             value: function tryCollectResource() {
+                // First try mining (which now also handles resource collection)
+                if (this.tryMining()) {
+                    return; // Mining action was handled
+                }
+                
+                // If no mining action was handled, try to collect regular resources
                 const collectedItem = this.world.checkCollision(this.player);
-                if (!collectedItem) return this.tryMining();
+                if (!collectedItem) return;
 
                 const { type, x, y } = collectedItem;
                 const amount = 1; // Standard amount for all resources
@@ -512,9 +519,11 @@ var Game = /*#__PURE__*/ function() {
                     // Check if player is near any mining spots
                     for(var _iterator = this.world.miningSpots[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true){
                         var miningSpot = _step.value;
-                        if (!miningSpot.active || miningSpot.mined) continue;
+                        if (!miningSpot.active) continue;
+                        
                         // Broad phase - distance-based check to skip far away mining spots
                         if (Math.abs(miningSpot.x - playerX) > miningCheckDistance) continue;
+                        
                         // Check if player is close enough to mine
                         var miningBounds = {
                             x: miningSpot.x - 20,
@@ -522,63 +531,58 @@ var Game = /*#__PURE__*/ function() {
                             width: miningSpot.width + 40,
                             height: miningSpot.height + 40
                         };
+                        
                         if (this.isColliding(playerBounds, miningBounds)) {
-                            // Player is close to the mining spot, process mining action
-                            var miningComplete = miningSpot.increaseClickCount();
-                            // Play mining sound with different pitch based on progress
-                            var pitchVariation = 0.8 + miningSpot.clickCount / MINING_REQUIRED_CLICKS * 0.4;
-                            this.audioManager.play('hurt', 0.3 * pitchVariation); // Repurpose hurt sound for mining
-                            // Add screen shake effect
-                            this.applyScreenShake(3);
-                            // Create floating text showing mining progress
-                            var progressText = "Mining: ".concat(miningSpot.clickCount, "/").concat(MINING_REQUIRED_CLICKS);
-                            this.floatingTexts.push(new FloatingText(progressText, miningSpot.x, miningSpot.y - 20));
-                            if (miningComplete) {
-                                // Mining is complete
-                                // Reset screen shake
-                                this.screenShakeIntensity = 0;
-                                this.screenShakeTimer = 0;
-                                
-                                // Add the appropriate resource based on mining spot type
-                                switch(miningSpot.type) {
-                                    case 'crossbow':
-                                        // Add crossbow to player's inventory
-                                        this.resourceManager.addResource('crossbow', 1);
-                                        this.floatingTexts.push(new FloatingText("Collected Crossbow!", miningSpot.x, miningSpot.y - 40));
-                                        break;
-                                    case 'shield':
-                                        // Add shield to player's inventory
-                                        this.resourceManager.addResource('shield', 1);
-                                        this.floatingTexts.push(new FloatingText("Collected Shield!", miningSpot.x, miningSpot.y - 40));
-                                        break;
-                                    case 'obsidian':
-                                        // Add obsidian to player's inventory
-                                        this.resourceManager.addResource('obsidian', 1);
-                                        this.floatingTexts.push(new FloatingText("Collected Obsidian Block!", miningSpot.x, miningSpot.y - 40));
-                                        break;
-                                    case 'gold nugget':
-                                        // Add gold nuggets to player's inventory
-                                        this.resourceManager.addResource('goldNuggets', 3);
-                                        this.floatingTexts.push(new FloatingText("Collected Gold Nuggets!", miningSpot.x, miningSpot.y - 40));
-                                        break;
-                                    default:
-                                        // Default behavior - show quiz
-                                        this.gameState = GAME_STATE.QUIZ;
-                                        this.quizPanel.show(miningSpot); // Pass the mining spot to the quiz panel
-                                        this.floatingTexts.push(new FloatingText("Mining complete!", miningSpot.x, miningSpot.y - 40));
-                                        break;
-                                }
-                                                               
-                                // Play completion sound
-                                this.audioManager.play('collect', 1.0);
-                                
-                                // Check if player has collected all required resources
-                                this.checkResourceCompletion();
-                                
-                                // Start the respawn timer for this mining spot
-                                miningSpot.startRespawnTimer();
+                            // If spot is already mined but resource not collected, show quiz and collect
+                            if (miningSpot.mined && !miningSpot.resourceSpawned) {
+                                // Show quiz for resource collection
+                                this.gameState = GAME_STATE.QUIZ;
+                                this.quizPanel.show(miningSpot); // Pass the mining spot to the quiz panel
+                                this.floatingTexts.push(new FloatingText("Solve to collect!", miningSpot.x, miningSpot.y - 40));
+                                // Play sound
+                                this.audioManager.play('collect', 0.7);
+                                return true; // Mining action handled
                             }
-                            return;
+                            
+                            // If not mined yet, process mining action
+                            if (!miningSpot.mined) {
+                                // Player is close to the mining spot, process mining action
+                                var miningComplete = miningSpot.increaseClickCount();
+                                // Play mining sound with different pitch based on progress
+                                var pitchVariation = 0.8 + miningSpot.clickCount / MINING_REQUIRED_CLICKS * 0.4;
+                                this.audioManager.play('hurt', 0.3 * pitchVariation); // Repurpose hurt sound for mining
+                                // Add screen shake effect
+                                this.applyScreenShake(3);
+                                // Create floating text showing mining progress
+                                var progressText = "Mining: ".concat(miningSpot.clickCount, "/").concat(MINING_REQUIRED_CLICKS);
+                                this.floatingTexts.push(new FloatingText(progressText, miningSpot.x, miningSpot.y - 20));
+                                
+                                if (miningComplete) {
+                                    // Mining is complete
+                                    // Reset screen shake
+                                    this.screenShakeIntensity = 0;
+                                    this.screenShakeTimer = 0;
+                                    
+                                    // Handle specific resource types directly without quiz
+                                    switch(miningSpot.type) {
+                                        case 'crossbow':
+                                        case 'shield':
+                                        case 'obsidian':
+                                        case 'gold nugget':
+                                            // For special resources, prompt to press E again to collect
+                                            this.floatingTexts.push(new FloatingText("Mining complete! Press E to collect", miningSpot.x, miningSpot.y - 40));
+                                            break;
+                                        default:
+                                            // Same for all other resources
+                                            this.floatingTexts.push(new FloatingText("Mining complete! Press E to collect", miningSpot.x, miningSpot.y - 40));
+                                            break;
+                                    }
+                                    
+                                    // Play completion sound
+                                    this.audioManager.play('collect', 1.0);
+                                }
+                            }
+                            return true; // Mining action handled
                         }
                     }
                 } catch (err) {
@@ -595,6 +599,8 @@ var Game = /*#__PURE__*/ function() {
                         }
                     }
                 }
+                
+                return false; // No mining action was handled
             }
         },
         {

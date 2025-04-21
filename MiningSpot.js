@@ -94,18 +94,23 @@ var MiningSpot = /*#__PURE__*/ function() {
                 var blockColor;
                 
                 switch(this.type) {
-                    case 'crossbow':
-                        blockTexture = assetLoader?.getAsset('crossbow') || assetLoader?.getAsset('greyCubeBlock');
-                        blockColor = '#8B4513'; // Brown
-                        break;
-                    case 'shield':
-                        blockTexture = assetLoader?.getAsset('shield') || assetLoader?.getAsset('greyCubeBlock');
-                        blockColor = '#C0C0C0'; // Silver
-                        break;
-                    case 'obsidian':
-                        blockTexture = assetLoader?.getAsset('obsidian') || assetLoader?.getAsset('greyCubeBlock');
-                        blockColor = '#301934'; // Dark purple
-                        break;
+                    // case 'crossbow':
+                    //     blockTexture = assetLoader?.getAsset('crossbow') || assetLoader?.getAsset('greyCubeBlock');
+                    //     blockColor = '#8B4513'; // Brown
+                    //     break;
+                    // case 'shield':
+                    //     blockTexture = assetLoader?.getAsset('shield') || assetLoader?.getAsset('greyCubeBlock');
+                    //     blockColor = '#C0C0C0'; // Silver
+                    //     break;
+                    // case 'obsidian':
+                    //     blockTexture = assetLoader?.getAsset('obsidian') || assetLoader?.getAsset('greyCubeBlock');
+                    //     blockColor = '#301934'; // Dark purple
+                    //     break;
+                    // case 'random':
+                    //     // Use iron ore texture for unknown/random resource
+                    //     blockTexture = assetLoader?.getAsset('ironOre') || assetLoader?.getAsset('greyCubeBlock');
+                    //     blockColor = '#777777'; // Mystery block color
+                    //     break;
                     default:
                         blockTexture = assetLoader?.getAsset('greyCubeBlock');
                         blockColor = '#A9A9A9'; // Gray
@@ -161,7 +166,12 @@ var MiningSpot = /*#__PURE__*/ function() {
                         ctx.fillStyle = 'white';
                         ctx.font = '10px Arial';
                         ctx.textAlign = 'center';
-                        ctx.fillText(this.type, screenX + this.width / 2, this.y - 5);
+                        // Don't show the type for random blocks to keep it a mystery
+                        if (this.type !== 'random') {
+                            ctx.fillText(this.type, screenX + this.width / 2, this.y - 5);
+                        } else {
+                            ctx.fillText('???', screenX + this.width / 2, this.y - 5);
+                        }
                         
                         // Add 2D mining progress animation when mining
                         if (this.clickCount > 0) {
@@ -277,6 +287,36 @@ var MiningSpot = /*#__PURE__*/ function() {
                         ctx.fillStyle = gradient1;
                         ctx.fillRect(screenX - 10, this.y - 10, this.width + 20, this.height + 20);
                     }
+                } else if (this.mined && !this.resourceSpawned) {
+                    // Draw an outline to show this spot is ready for collection
+                    ctx.strokeStyle = '#FFCC00'; // Gold outline
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(screenX, this.y, this.width, this.height);
+                    
+                    // Draw text to indicate math problem needed for collection
+                    ctx.fillStyle = '#FFCC00'; // Gold text
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    
+                    // Animate the text with a slight bounce based on time
+                    var bounceAmount = Math.sin(Date.now() / 300) * 2;
+                    ctx.fillText('Press E to solve', screenX + this.width / 2, this.y - 15 + bounceAmount);
+                    ctx.fillText('math problem', screenX + this.width / 2, this.y - 2 + bounceAmount);
+                    
+                    // Add glow effect around mined resource
+                    var gradient = ctx.createRadialGradient(
+                        screenX + this.width / 2, 
+                        this.y + this.height / 2, 
+                        0,
+                        screenX + this.width / 2, 
+                        this.y + this.height / 2, 
+                        this.width
+                    );
+                    gradient.addColorStop(0, 'rgba(255, 204, 0, 0.3)');
+                    gradient.addColorStop(1, 'rgba(255, 204, 0, 0)');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(screenX - 5, this.y - 5, this.width + 10, this.height + 10);
+                    
                 } else if (this.resourceSpawned) {
                     // Draw an outline to show this spot has been mined
                     ctx.strokeStyle = '#555';

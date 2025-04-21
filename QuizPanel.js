@@ -18,6 +18,8 @@ function _create_class(Constructor, protoProps, staticProps) {
     return Constructor;
 }
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GAME_STATE } from './constants.js';
+import { FloatingText } from './FloatingText.js';
+
 var QuizPanel = /*#__PURE__*/ function() {
     "use strict";
     function QuizPanel(game) {
@@ -344,54 +346,82 @@ var QuizPanel = /*#__PURE__*/ function() {
                 var _this = this;
                 if (this.selectedAnswer === this.currentQuiz.correctAnswer) {
                     // Correct answer
-                    this.feedbackMessage = 'Correct! Gold nuggets will appear.';
+                    this.feedbackMessage = 'Correct! Resource collected.';
                     this.feedbackColor = '#4CAF50'; // Green
-                    // If this quiz is from a mining spot, spawn the resource there
+                    
+                    // If this quiz is from a mining spot, award the resource
                     if (this.currentMiningSpot) {
-                        this.spawnResourceAtMiningSpot();
+                        // Determine which resource to award based on probability
+                        // Shield: 1/4, Crossbow: 1/4, Obsidian: 2/4
+                        let resourceType;
+                        const randomValue = Math.random();
+                        
+                        if (randomValue < 1/4) {
+                            resourceType = 'shield';
+                        } else if (randomValue < 2/4) {
+                            resourceType = 'crossbow';
+                        } else {
+                            resourceType = 'obsidian';
+                        }
+                        
+                        // Add the appropriate resource based on the randomly determined type
+                        switch(resourceType) {
+                            case 'crossbow':
+                                // Add crossbow to player's inventory
+                                this.game.resourceManager.addResource('crossbow', 1);
+                                this.game.floatingTexts.push(new FloatingText("Collected Crossbow!", this.currentMiningSpot.x, this.currentMiningSpot.y - 40));
+                                break;
+                            case 'shield':
+                                // Add shield to player's inventory
+                                this.game.resourceManager.addResource('shield', 1);
+                                this.game.floatingTexts.push(new FloatingText("Collected Shield!", this.currentMiningSpot.x, this.currentMiningSpot.y - 40));
+                                break;
+                            case 'obsidian':
+                                // Add obsidian to player's inventory
+                                this.game.resourceManager.addResource('obsidian', 1);
+                                this.game.floatingTexts.push(new FloatingText("Collected Obsidian Block!", this.currentMiningSpot.x, this.currentMiningSpot.y - 40));
+                                break;
+                        }
+                        
+                        // Mark the mining spot as having spawned a resource
+                        this.currentMiningSpot.resourceSpawned = true;
+                        
+                        // Update crafting panel
+                        this.game.craftingPanel.updateResources(this.game.resourceManager.getResources());
+                        
+                        // Check if player has collected all required resources
+                        this.game.checkResourceCompletion();
+                        
+                        // Start the respawn timer for this mining spot
+                        this.currentMiningSpot.startRespawnTimer();
+                        
+                        // Play success sound
+                        this.game.audioManager.play('collect', 1.0);
                     } else {
                         // Fallback for quizzes not triggered by mining
-                        this.game.resources[this.currentQuiz.reward.type] += this.currentQuiz.reward.amount;
-                        this.game.craftingPanel.updateResources(this.game.resources);
+                        this.game.resourceManager.addResource(this.currentQuiz.reward.type, this.currentQuiz.reward.amount);
+                        this.game.craftingPanel.updateResources(this.game.resourceManager.getResources());
+                        
                         // Add floating text for direct rewards
                         var playerX = this.game.player.x;
                         var playerY = this.game.player.y;
-                        this.game.floatingTexts.push(new this.game.floatingTextClass("+".concat(this.currentQuiz.reward.amount, " ").concat(this.currentQuiz.reward.type), playerX, playerY - 20));
+                        this.game.floatingTexts.push(new FloatingText("+".concat(this.currentQuiz.reward.amount, " ").concat(this.currentQuiz.reward.type), playerX, playerY - 20));
                     }
                 } else {
                     // Wrong answer
                     this.feedbackMessage = 'Incorrect! Try again.';
                     this.feedbackColor = '#F44336'; // Red
                 }
+                
                 // Show feedback
                 this.showingFeedback = true;
                 this.feedbackTimer = 2000; // 2 seconds
+                
                 // After feedback, close quiz and return to game
                 setTimeout(function() {
                     _this.hide();
                     _this.game.gameState = GAME_STATE.PLAYING;
                 }, this.feedbackTimer);
-            }
-        },
-        {
-            key: "spawnResourceAtMiningSpot",
-            value: function spawnResourceAtMiningSpot() {
-                if (!this.currentMiningSpot) return;
-                // Create a new collectable item at the mining spot location
-                var item = {
-                    type: this.currentMiningSpot.type,
-                    x: this.currentMiningSpot.x,
-                    y: this.currentMiningSpot.y - 10,
-                    width: 30,
-                    height: 30,
-                    id: "".concat(this.currentMiningSpot.type, "-").concat(Date.now())
-                };
-                // Add the item to the world
-                this.game.world.items.push(item);
-                // Mark mining spot as having spawned a resource
-                this.currentMiningSpot.resourceSpawned = true;
-                // Add floating text indicating resource spawned
-                this.game.floatingTexts.push(new this.game.floatingTextClass("Gold nuggets appeared!", this.currentMiningSpot.x, this.currentMiningSpot.y - 40));
             }
         },
         {

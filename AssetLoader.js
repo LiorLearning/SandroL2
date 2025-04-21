@@ -212,9 +212,9 @@ export var AssetLoader = /*#__PURE__*/ function() {
             // 'blazeRod': './assets/level3/blaze_rod.png',
             // 'blazePowder': './assets/level3/blaze_powder.png',
             // 'enderEye': './assets/level3/ender_eye.png',
-            // 'obsidian': './assets/level3/obsidian.png',
-            // 'crossbow': './assets/level3/crossbow.png',
-            // 'shield': './assets/level3/shield.png'
+            'obsidian': './assets/level3/obsidian.png',
+            'crossbow': './assets/level3/crossbow.png',
+            'shield': './assets/level3/shield.png'
         };
     }
     _create_class(AssetLoader, [
