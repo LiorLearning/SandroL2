@@ -10,7 +10,7 @@ import { AudioManager } from './AudioManager.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_LEVEL, GAME_STATE, MINING_REQUIRED_CLICKS } from './constants.js';
 import { FloatingText } from './FloatingText.js';
 import QuizPanel from './QuizPanel.js';
-import Enderman from './Endermen.js';
+// import Enderman from './Endermen.js';
 import { ResourceManager } from './ResourceManager.js';
 import Hammer from './Hammer.js';
 
@@ -880,6 +880,11 @@ var Game = /*#__PURE__*/ function() {
                         if (this.checkLavaCollision()) {
                             this.handleLavaCollision();
                         }
+                        
+                        // Check for portal collision
+                        if (this.portal && this.portal.active) {
+                            this.checkPortalCollision();
+                        }
                     }
                 } else if (isQuiz) {
                     this.quizPanel.update(deltaTime);
@@ -1067,11 +1072,6 @@ var Game = /*#__PURE__*/ function() {
                 // Render the portal if it exists
                 if (this.portal && this.portal.active) {
                     this.renderPortal();
-                }
-                
-                // Render completion message if available
-                if (this.resourceCompletionMessage) {
-                    this.renderCompletionMessage();
                 }
                 
                 // Reset transformations if screen was shaking
@@ -1450,8 +1450,56 @@ var Game = /*#__PURE__*/ function() {
         {
             key: "checkPortalCollision",
             value: function checkPortalCollision() {
-                // This method is now empty as we no longer use portals
-                // Victory is now determined by resource collection
+                // Skip if no portal exists or player has already entered portal
+                if (!this.portal || !this.portal.active || this.enteredPortal) {
+                    return false;
+                }
+                
+                // Check if player is colliding with portal
+                const playerRect = {
+                    x: this.player.x,
+                    y: this.player.y,
+                    width: this.player.width,
+                    height: this.player.height
+                };
+                
+                const portalRect = {
+                    x: this.portal.x,
+                    y: this.portal.y,
+                    width: this.portal.width,
+                    height: this.portal.height
+                };
+                
+                // If player collides with portal
+                if (this.isColliding(playerRect, portalRect)) {
+                    // Play portal entry sound
+                    this.audioManager.play('collect', 1.8);
+                    
+                    // Add floating text
+                    this.floatingTexts.push(
+                        new FloatingText(
+                            "Level complete!", 
+                            this.player.x, 
+                            this.player.y - 60,
+                            2000
+                        )
+                    );
+                    
+                    // Apply screen shake for effect
+                    this.applyScreenShake(8);
+                    
+                    // Set flag to prevent repeated triggers
+                    this.enteredPortal = true;
+                    
+                    // Set timeout to transition to victory state after effect
+                    setTimeout(() => {
+                        this.gameState = GAME_STATE.VICTORY;
+                    }, 1000);
+                    
+                    return true;
+                }
+                
+                return false;
             }
         },
         {
@@ -1544,85 +1592,23 @@ var Game = /*#__PURE__*/ function() {
                 
                 // Check if player has collected all required resources
                 if (resources.crossbow >= 1 && resources.shield >= 1 && resources.obsidian >= 4 && resources.enderpearl >= 2) {
-                    // All required resources collected, show a message
+                    // All required resources collected, show a simple message
                     this.floatingTexts.push(new FloatingText(
-                        "All resources collected! You can proceed to the next stage.", 
+                        "All resources collected!", 
                         this.player.x, 
                         this.player.y - 60,
-                        3000 // longer duration for important message
+                        2000 // shorter duration
                     ));
                     
-                    // Play success sound
+                    // Play special sound
                     this.audioManager.play('collect', 1.5);
                     
-                    // Show visual indicator that requirements are met
-                    this.showResourceCompletionModal();
+                    // Create portal in front of player (about 200px ahead)
+                    this.createPortal(this.player.x + 200, this.player.y - 40);
                     
-                    // Trigger victory if requirements are met
-                    this.gameState = GAME_STATE.VICTORY;
-                    this.victoryScreen.show();
+                    // Set flag to prevent checking resources again
+                    this.resourceRequirementsMet = true;
                 }
-            }
-        },
-        {
-            key: "showResourceCompletionModal",
-            value: function showResourceCompletionModal() {
-                // Set a flag indicating completion
-                this.resourceRequirementsMet = true;
-                
-                // Create a popup or notification
-                this.resourceCompletionMessage = {
-                    text: "You have collected all required resources!",
-                    subtext: "1 Crossbow, 1 Shield, 4 Obsidian Blocks, 2 Ender Pearls",
-                    startTime: Date.now(),
-                    duration: 5000 // Show for 5 seconds
-                };
-            }
-        },
-        {
-            key: "renderCompletionMessage",
-            value: function renderCompletionMessage() {
-                var elapsedTime = Date.now() - this.resourceCompletionMessage.startTime;
-                
-                // Remove message if duration has passed
-                if (elapsedTime > this.resourceCompletionMessage.duration) {
-                    this.resourceCompletionMessage = null;
-                    return;
-                }
-                
-                // Calculate fade-in and fade-out
-                var alpha = 1.0;
-                var fadeInDuration = 500; // 0.5 second fade in
-                var fadeOutDuration = 1000; // 1 second fade out
-                
-                if (elapsedTime < fadeInDuration) {
-                    alpha = elapsedTime / fadeInDuration;
-                } else if (elapsedTime > this.resourceCompletionMessage.duration - fadeOutDuration) {
-                    alpha = (this.resourceCompletionMessage.duration - elapsedTime) / fadeOutDuration;
-                }
-                
-                // Center the message on screen
-                var messageX = CANVAS_WIDTH / 2;
-                var messageY = CANVAS_HEIGHT / 2 - 50;
-                
-                // Draw background
-                this.ctx.fillStyle = `rgba(0, 0, 0, ${alpha * 0.85})`;
-                this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-                
-                // Draw message
-                this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-                this.ctx.font = 'bold 24px Arial';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillText(this.resourceCompletionMessage.text, messageX, messageY);
-                
-                // Draw subtext
-                this.ctx.font = '18px Arial';
-                this.ctx.fillText(this.resourceCompletionMessage.subtext, messageX, messageY + 40);
-                
-                // Draw proceed message
-                this.ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
-                this.ctx.font = 'bold 20px Arial';
-                this.ctx.fillText('You may now proceed to the next stage!', messageX, messageY + 90);
             }
         },
         {
@@ -1632,7 +1618,7 @@ var Game = /*#__PURE__*/ function() {
                 this.portal = {
                     x: x,
                     y: y,
-                    width: 64,
+                    width: 128,
                     height: 128,
                     active: true,
                     creationTime: Date.now()

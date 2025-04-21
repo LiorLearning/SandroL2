@@ -70,11 +70,11 @@ export var ResourceManager = /*#__PURE__*/ function() {
         _class_call_check(this, ResourceManager);
         this.game = game;
         this.resources = {
-            goldNuggets: 0, // Only tracking gold nuggets
-            crossbow: 0,    // Add crossbow resource
-            shield: 0,      // Add shield resource
-            obsidian: 0,    // Add obsidian resource
-            enderpearl: 0   // Add enderpearl resource
+            goldNuggets: 5, // Only tracking gold nuggets
+            crossbow: 2,    // Add crossbow resource
+            shield: 1,      // Add shield resource
+            obsidian: 3,    // Add obsidian resource
+            enderpearl: 2   // Add enderpearl resource
         };
         // Simplified crafting requirements
         this.craftingRequirements = {

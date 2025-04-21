@@ -64,23 +64,66 @@ export class CraftingPanel {
     }
 
     createPortal() {
-        // Use all obsidian
-        this.resources.obsidian = 0;
-        
-        // Create portal in front of player
-        const portalX = this.game.player.x;
-        const portalY = this.game.player.y - 50;
-        
-        // Create portal object (to be implemented in game.js)
-        if (typeof this.game.createPortal === 'function') {
-            this.game.createPortal(portalX, portalY);
+        // Check if we have enough resources
+        if (
+            (this.resources.crossbow || 0) >= this.requirements.crossbow &&
+            (this.resources.shield || 0) >= this.requirements.shield &&
+            (this.resources.obsidian || 0) >= this.requirements.obsidian &&
+            (this.resources.enderpearl || 0) >= this.requirements.enderpearl
+        ) {
+            // Use resources
+            this.resources.obsidian -= this.requirements.obsidian;
+            this.resources.enderpearl -= this.requirements.enderpearl;
+            
+            // Create portal in front of player
+            const portalX = this.game.player.x + 150;
+            const portalY = this.game.player.y - 100;
+            
+            // Create portal object in the game
+            if (typeof this.game.createPortal === 'function') {
+                this.game.createPortal(portalX, portalY);
+
+                console.log("Portal created at", portalX, portalY);
+                
+                // Make sure the portal is using the correct image
+                // The asset should be preloaded as 'portal' in the AssetLoader
+                const portalImage = this.game.assetLoader.getAsset('portal');
+                console.log("Portal image", portalImage);
+                if (!portalImage) {
+                    // If portal image isn't loaded yet, try to load it
+                    this.game.assetLoader.loadImage('portal', 'assets/level3/portal.png')
+                        .then(() => {
+                            // Refresh the portal rendering
+                            if (this.game.portal) {
+                                this.game.portal.imageLoaded = true;
+                            }
+                        });
+                }
+            }
+            
+            // Play portal creation sound
+            this.game.audioManager.play('collect', 1.5);
+            
+            // Add floating text message
+            this.game.floatingTexts.push(
+                new this.game.floatingTextClass(
+                    "Portal Created!",
+                    portalX,
+                    portalY - 50,
+                    3000, // longer duration
+                    { color: '#AA55FF' } // purple color
+                )
+            );
+            
+            // Apply screen shake for effect
+            this.game.applyScreenShake(8);
+            
+            // Update resources display
+            this.updateResources(this.resources);
+            
+            // Hide craft button after portal is created
+            this.craftButton.visible = false;
         }
-        
-        // Play sound
-        this.game.audioManager.play('collect', 0.8);
-        
-        // Update resources
-        this.updateResources(this.resources);
     }
 
     render(ctx) {
@@ -147,7 +190,7 @@ export class CraftingPanel {
         );
         
         // Show craft button if all requirements are met
-        this.craftButton.visible = allRequirementsMet;
+        this.craftButton.visible = allRequirementsMet && !this.game.portal;
         if (this.craftButton.visible) {
             // Draw craft button
             ctx.fillStyle = '#4CAF50';
@@ -164,6 +207,11 @@ export class CraftingPanel {
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('Create Portal', this.craftButton.x + this.craftButton.width / 2, this.craftButton.y + this.craftButton.height / 2);
+        }
+        
+        // Update highlight timer if needed
+        if (this.highlightTimer > 0) {
+            this.highlightTimer -= 16; // Assume ~60fps
         }
     }
 

@@ -199,7 +199,7 @@ export var AssetLoader = /*#__PURE__*/ function() {
             'strings': 'https://play.rosebud.ai/assets/string.gif?LI32',
             'flint': 'https://play.rosebud.ai/assets/flint.png?wYiy',
             'feather': 'https://play.rosebud.ai/assets/feather.png?TRqd',
-            'bg_Sandro': './assets/level3/backgroud.png',
+            'bg_Sandro': './assets/level3/background.png',
             'ironOre': 'https://play.rosebud.ai/assets/minecraft-iron-ore-cube-mr3AX6E-600-removebg-preview.png?FUcG',
             'greyCubeBlock': 'https://play.rosebud.ai/assets/grey cube block minecraft.png?ueiM',
             'dave minecraft': 'https://play.rosebud.ai/assets/dave minecraft.png?IPuk',
@@ -212,7 +212,8 @@ export var AssetLoader = /*#__PURE__*/ function() {
             'enderpearl': './assets/level3/ender_pearl.png',
             'obsidian': './assets/level3/obsidian.png',
             'crossbow': './assets/level3/crossbow.png',
-            'shield': './assets/level3/shield.png'
+            'shield': './assets/level3/shield.png',
+            'portal': './assets/level3/portal.png'
         };
     }
     _create_class(AssetLoader, [
