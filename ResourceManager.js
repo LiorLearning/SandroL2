@@ -77,7 +77,7 @@ export var ResourceManager = /*#__PURE__*/ function() {
             crossbow: 0,
             shield: 0,
             obsidian: 0,
-            enderpearl: 1,
+            enderpearl: 0,
             blazerod: 0 // Add blaze rod resource
         };
         // Simplified crafting requirements

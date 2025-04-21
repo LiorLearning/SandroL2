@@ -203,7 +203,7 @@ export var AssetLoader = /*#__PURE__*/ function() {
             'bg_Sandro2': './assets/level3/background2.png',
             'ironOre': 'https://play.rosebud.ai/assets/minecraft-iron-ore-cube-mr3AX6E-600-removebg-preview.png?FUcG',
             'greyCubeBlock': 'https://play.rosebud.ai/assets/grey cube block minecraft.png?ueiM',
-            'dave minecraft': 'https://play.rosebud.ai/assets/dave minecraft.png?IPuk',
+            'dave minecraft': './assets/level3/dave.png',
             'dave minecraft2': './assets/level3/dave2.png',
             'Platform_v2': 'https://play.rosebud.ai/assets/Platform_v2.png?dTgz',
             'lava pit': 'https://play.rosebud.ai/assets/lava pit.png?KI7k',

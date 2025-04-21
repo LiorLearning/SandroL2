@@ -502,7 +502,7 @@ var Game = /*#__PURE__*/ function() {
                 // If no mining action was handled, try to collect regular resources
                 // Check for nearby items to collect
                 const playerBounds = this.player.getBounds();
-                const collectionRange = 70; // Increased collection range
+                const collectionRange = 100; // Increased collection range
                 
                 // Expand player bounds for collection
                 const collectionBounds = {
@@ -2631,7 +2631,7 @@ var Game = /*#__PURE__*/ function() {
                 
                 // Draw empty hearts for missing health (up to 5 total)
                 for (let i = this.player.health; i < 5; i++) {
-                    const x = startX + 65 + (i * heartSpacing);
+                    const x = startX + 10 + (i * heartSpacing);
                     
                     // Draw empty heart outline
                     this.ctx.strokeStyle = 'rgba(180, 30, 30, 0.5)';

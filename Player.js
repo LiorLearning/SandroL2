@@ -39,7 +39,7 @@ var Player = /*#__PURE__*/ function() {
         );
         this.x = x;
         this.y = y;
-        this.width = 25; // Slightly wider to match Dave sprite
+        this.width = 35; // Slightly wider to match Dave sprite
         this.height = 45; // Taller to match Dave sprite
         this.velocityX = 0;
         this.velocityY = 0;
