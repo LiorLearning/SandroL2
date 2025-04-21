@@ -514,6 +514,8 @@ var Game = /*#__PURE__*/ function() {
                 
                 // Check all items in the world
                 let collectedItem = null;
+                let specialItemNearby = false;
+                
                 for (let i = 0; i < this.world.items.length; i++) {
                     const item = this.world.items[i];
                     
@@ -527,14 +529,23 @@ var Game = /*#__PURE__*/ function() {
                     
                     // Check if item is within collection range
                     if (this.isColliding(collectionBounds, itemBounds)) {
+                        // Check if it's a special item that's auto-collected
+                        if (item.type === 'enderpearl' || item.type === 'blazerod') {
+                            specialItemNearby = true;
+                            continue; // Skip - this will be auto-collected
+                        }
+                        
                         collectedItem = item;
                         break;
                     }
                 }
                 
                 if (!collectedItem) {
-                    // Show message if no item found
-                    this.floatingTexts.push(new FloatingText("Nothing to collect nearby", this.player.x, this.player.y - 20));
+                    // Only show message if no special items are nearby either
+                    if (!specialItemNearby) {
+                        // Show message if no item found
+                        this.floatingTexts.push(new FloatingText("Nothing to collect nearby", this.player.x, this.player.y - 20));
+                    }
                     return;
                 }
 
@@ -1021,6 +1032,9 @@ var Game = /*#__PURE__*/ function() {
                         // Update endermen before entering portal 
                         this.world.updateEndermen(deltaTime);
                     }
+                    
+                    // Auto-collect enderpearls and blaze rods when player gets close
+                    this.autoCollectSpecialItems();
                     
                     this.world.updateMiningSpots(deltaTime);
                     this.player.update(deltaTime, this.world);
@@ -2660,6 +2674,103 @@ var Game = /*#__PURE__*/ function() {
                     );
                     this.ctx.stroke();
                 }
+            }
+        },
+        {
+            key: "autoCollectSpecialItems",
+            value: function autoCollectSpecialItems() {
+                // Only check for items if there are items in the world
+                if (!this.world.items || this.world.items.length === 0) return;
+                
+                // Get player bounds
+                const playerBounds = this.player.getBounds();
+                const collectionRange = 100; // Collection range for special items
+                
+                // Expand player bounds for collection
+                const collectionBounds = {
+                    x: playerBounds.x - collectionRange/2,
+                    y: playerBounds.y - collectionRange/2,
+                    width: playerBounds.width + collectionRange,
+                    height: playerBounds.height + collectionRange
+                };
+                
+                // Check all items in the world for special items to auto-collect
+                for (let i = this.world.items.length - 1; i >= 0; i--) {
+                    const item = this.world.items[i];
+                    
+                    // Only auto-collect enderpearls and blaze rods
+                    if (item.type !== 'enderpearl' && item.type !== 'blazerod') continue;
+                    
+                    // Create item bounds
+                    const itemBounds = {
+                        x: item.x,
+                        y: item.y,
+                        width: item.width || 20,
+                        height: item.height || 20
+                    };
+                    
+                    // Check if item is within collection range
+                    if (this.isColliding(collectionBounds, itemBounds)) {
+                        // Auto-collect the item
+                        const { type, x, y } = item;
+                        const amount = 1;
+                        
+                        // Show collection message with auto-collect indication
+                        this.floatingTexts.push(new FloatingText(`Auto-collected ${type}!`, x, y - 20, 1500, { 
+                            color: '#FFD700',
+                            fontSize: 16,
+                            centered: true
+                        }));
+                        
+                        // Create a sparkle effect for auto-collection
+                        this.createCollectionSparkles(x + item.width/2, y + item.height/2, type);
+                        
+                        // Add to resources
+                        this.resourceManager.addResource(type, amount);
+                        
+                        // Remove the item from the world
+                        this.world.removeItem(item);
+                        
+                        // Check if all required resources have been collected
+                        this.checkResourceCompletion();
+                    }
+                }
+            }
+        },
+        {
+            key: "createCollectionSparkles",
+            value: function createCollectionSparkles(x, y, type) {
+                // Create 10-15 sparkle particles
+                const particleCount = 10 + Math.floor(Math.random() * 6);
+                const color = type === 'enderpearl' ? '#9932CC' : '#FF8C00'; // Purple for enderpearl, orange for blaze rod
+                
+                // Sparkle symbols
+                const symbols = ['✦', '✧', '★', '☆', '✴', '✩', '✫', '*'];
+                
+                for (let i = 0; i < particleCount; i++) {
+                    // Pick a random sparkle symbol
+                    const sparkleText = symbols[Math.floor(Math.random() * symbols.length)];
+                    const sparkleX = x + (Math.random() - 0.5) * 40;
+                    const sparkleY = y + (Math.random() - 0.5) * 40;
+                    const duration = 500 + Math.random() * 500;
+                    
+                    // Create floating text with larger font for sparkles
+                    const options = {
+                        color: color,
+                        fontSize: 16 + Math.floor(Math.random() * 8)
+                    };
+                    
+                    const sparkle = new FloatingText(sparkleText, sparkleX, sparkleY, duration, options);
+                    sparkle.velocity = {
+                        x: (Math.random() - 0.5) * 2,
+                        y: -1 - Math.random() * 2
+                    };
+                    
+                    this.floatingTexts.push(sparkle);
+                }
+                
+                // Play a special auto-collect sound with higher pitch
+                this.audioManager.play('collect', 1.0 + Math.random() * 0.3);
             }
         },
     ]);

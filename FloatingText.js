@@ -70,9 +70,19 @@ export var FloatingText = /*#__PURE__*/ function() {
         {
             key: "update",
             value: function update(deltaTime) {
-                // Update position
-                this.y += this.velocityY;
-                this.x += this.velocityX;
+                // Handle custom velocity if defined, otherwise use default velocityY/velocityX
+                if (this.velocity) {
+                    this.x += this.velocity.x;
+                    this.y += this.velocity.y;
+                    
+                    // Add gravity effect for sparkles
+                    this.velocity.y += 0.05;
+                } else {
+                    // Update position with standard velocities
+                    this.y += this.velocityY;
+                    this.x += this.velocityX;
+                }
+                
                 // Update animation properties
                 this.elapsed += deltaTime;
                 var progress = this.elapsed / this.lifespan;
