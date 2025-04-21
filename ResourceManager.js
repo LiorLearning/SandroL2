@@ -70,16 +70,33 @@ export var ResourceManager = /*#__PURE__*/ function() {
         _class_call_check(this, ResourceManager);
         this.game = game;
         this.resources = {
-            goldNuggets: 5, // Only tracking gold nuggets
-            crossbow: 2,    // Add crossbow resource
-            shield: 1,      // Add shield resource
-            obsidian: 3,    // Add obsidian resource
-            enderpearl: 2   // Add enderpearl resource
+            sticks: 0,
+            strings: 0,
+            flint: 0,
+            feather: 0,
+            crossbow: 1,
+            shield: 1,
+            obsidian: 3,
+            enderpearl: 4,
+            blazerod: 0 // Add blaze rod resource
         };
         // Simplified crafting requirements
         this.craftingRequirements = {
             goldenBoots: {
                 goldNuggets: 36 // Only craft golden boots with 36 nuggets
+            }
+        };
+        // Victory requirements based on game stage
+        this.victoryRequirements = {
+            stage1: {
+                crossbow: 1,
+                shield: 1,
+                obsidian: 4,
+                enderpearl: 2
+            },
+            stage2: {
+                enderpearl: 2,
+                blazerod: 3
             }
         };
         // For tracking highlighted resources in UI
@@ -268,19 +285,62 @@ export var ResourceManager = /*#__PURE__*/ function() {
         {
             key: "getResourceColor",
             value: function getResourceColor(type) {
-                var resourceColors = {
-                    goldNuggets: '#FFD700', // Gold
-                    crossbow: '#8B4513',    // Brown
-                    shield: '#C0C0C0',      // Silver
-                    obsidian: '#301934'     // Dark purple for obsidian
+                var colors = {
+                    sticks: '#8B4513',
+                    strings: '#C0C0C0',
+                    flint: '#696969',
+                    feather: '#F5F5F5',
+                    gold: '#FFD700',
+                    'gold nugget': '#FFD700',
+                    crossbow: '#B8860B',
+                    shield: '#A9A9A9',
+                    obsidian: '#4B0082',
+                    enderpearl: '#9932CC',
+                    blazerod: '#FF8C00' // Add blaze rod color (orange)
                 };
-                return resourceColors[type] || 'white';
+                return colors[type] || '#333333';
             }
         },
         {
             key: "getResourceRequirements",
             value: function getResourceRequirements(itemType) {
                 return this.craftingRequirements[itemType] || null;
+            }
+        },
+        {
+            key: "resetForStage2",
+            value: function resetForStage2() {
+                // Preserve only enderpearls
+                const enderpearlCount = this.resources.enderpearl || 0;
+                
+                // Reset all resources
+                this.resources = {
+                    enderpearl: enderpearlCount,
+                    blazerod: 0
+                };
+                
+                // Update crafting panel if it exists
+                if (this.game.craftingPanel) {
+                    this.game.craftingPanel.updateResources(this.resources);
+                }
+                
+                return this.resources;
+            }
+        },
+        {
+            key: "checkVictoryRequirements",
+            value: function checkVictoryRequirements(isStage2 = false) {
+                const requiredResources = isStage2 ? 
+                    this.victoryRequirements.stage2 : 
+                    this.victoryRequirements.stage1;
+                
+                for (const [type, amount] of Object.entries(requiredResources)) {
+                    if ((this.resources[type] || 0) < amount) {
+                        return false;
+                    }
+                }
+                
+                return true;
             }
         }
     ]);

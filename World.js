@@ -23,6 +23,7 @@ import Platform from './Platform.js';
 import Enderman from './Endermen.js';
 import MiningSpot from './MiningSpot.js';
 import { RESOURCE_TYPES } from './constants.js';
+import Blaze from './Blaze.js';
 var World = /*#__PURE__*/ function() {
     "use strict";
     function World(assetLoader) {
@@ -33,6 +34,7 @@ var World = /*#__PURE__*/ function() {
         this.platforms = [];
         this.endermen = []; // Array to hold enderman enemies
         this.miningSpots = []; // Array to hold mining spots
+        this.blazes = []; // Array to hold blaze enemies for stage 2
         this.cameraOffset = 0; // Add camera offset property
         this.generateLevel();
     }
@@ -667,6 +669,27 @@ var World = /*#__PURE__*/ function() {
                         }
                     }
                 }
+                var _iteratorNormalCompletion5 = true, _didIteratorError5 = false, _iteratorError5 = undefined;
+                try {
+                    // Render blazes
+                    for(var _iterator5 = this.blazes[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true){
+                        var blaze = _step5.value;
+                        blaze.render(ctx, this.cameraOffset, this.assetLoader);
+                    }
+                } catch (err) {
+                    _didIteratorError5 = true;
+                    _iteratorError5 = err;
+                } finally{
+                    try {
+                        if (!_iteratorNormalCompletion5 && _iterator5.return != null) {
+                            _iterator5.return();
+                        }
+                    } finally{
+                        if (_didIteratorError5) {
+                            throw _iteratorError5;
+                        }
+                    }
+                }
             }
         },
         {
@@ -1046,6 +1069,123 @@ var World = /*#__PURE__*/ function() {
                             enderman.updateSpeed(this.game.resources.goldNuggets);
                         }
                     }
+                }
+            }
+        },
+        {
+            key: "updateBlazes",
+            value: function updateBlazes(deltaTime) {
+                // Update each blaze's position and state
+                for (let i = 0; i < this.blazes.length; i++) {
+                    this.blazes[i].update(deltaTime);
+                }
+            }
+        },
+        {
+            key: "checkBlazeCollisions",
+            value: function checkBlazeCollisions(player) {
+                for (const blaze of this.blazes) {
+                    if (blaze.checkCollision(player)) {
+                        return blaze;
+                    }
+                }
+                return null;
+            }
+        },
+        {
+            key: "drawBlazeRod",
+            value: function drawBlazeRod(ctx, x, y) {
+                const screenX = x - this.cameraOffset;
+                
+                // Skip if off screen
+                if (screenX < -20 || screenX > ctx.canvas.width + 20) {
+                    return;
+                }
+                
+                ctx.save();
+                
+                // Get blaze rod image if available
+                const blazeRodImage = this.assetLoader?.getAsset('blazerod');
+                
+                if (blazeRodImage) {
+                    ctx.drawImage(blazeRodImage, screenX - 10, y - 10, 20, 20);
+                } else {
+                    // Fallback rendering if no image is available
+                    // Draw glowing rod
+                    const glowGradient = ctx.createRadialGradient(
+                        screenX, y, 0,
+                        screenX, y, 15
+                    );
+                    
+                    glowGradient.addColorStop(0, 'rgba(255, 200, 0, 0.7)');
+                    glowGradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+                    
+                    ctx.fillStyle = glowGradient;
+                    ctx.globalCompositeOperation = 'lighter';
+                    ctx.beginPath();
+                    ctx.arc(screenX, y, 15, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Draw rod center
+                    ctx.fillStyle = '#ffaa00';
+                    ctx.beginPath();
+                    ctx.rect(screenX - 7, y - 2, 14, 4);
+                    ctx.fill();
+                    
+                    ctx.globalCompositeOperation = 'source-over';
+                }
+                
+                // Add floating effect
+                if (Math.random() < 0.1) {
+                    ctx.globalCompositeOperation = 'lighter';
+                    ctx.fillStyle = 'rgba(255, 200, 0, 0.3)';
+                    ctx.beginPath();
+                    ctx.arc(
+                        screenX + (Math.random() - 0.5) * 10, 
+                        y + (Math.random() - 0.5) * 10, 
+                        3 + Math.random() * 2, 
+                        0, 
+                        Math.PI * 2
+                    );
+                    ctx.fill();
+                    ctx.globalCompositeOperation = 'source-over';
+                }
+                
+                ctx.restore();
+            }
+        },
+        {
+            key: "drawItem",
+            value: function drawItem(ctx, item) {
+                const { type, x, y } = item;
+                
+                switch (type) {
+                    case 'sticks':
+                        this.drawSticks(ctx, x, y);
+                        break;
+                    case 'strings':
+                        this.drawStrings(ctx, x, y);
+                        break;
+                    case 'flint':
+                        this.drawFlint(ctx, x, y);
+                        break;
+                    case 'feather':
+                        this.drawFeather(ctx, x, y);
+                        break;
+                    case 'gold nugget':
+                        this.drawGoldNugget(ctx, x, y);
+                        break;
+                    case 'enderpearl':
+                        this.drawEnderpearl(ctx, x, y);
+                        break;
+                    case 'blazerod':
+                        this.drawBlazeRod(ctx, x, y);
+                        break;
+                    default:
+                        // Default item drawing
+                        ctx.fillStyle = '#ff0000';
+                        ctx.fillRect(x - this.cameraOffset, y, 10, 10);
+                        break;
                 }
             }
         }

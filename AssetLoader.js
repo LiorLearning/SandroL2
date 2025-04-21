@@ -215,7 +215,12 @@ export var AssetLoader = /*#__PURE__*/ function() {
             'obsidian': './assets/level3/obsidian.png',
             'crossbow': './assets/level3/crossbow.png',
             'shield': './assets/level3/shield.png',
-            'portal': './assets/level3/portal.png'
+            'portal': './assets/level3/portal.png',
+            
+            // Add stage 2 assets
+            'blaze': './assets/level3/blaze.png',
+            'blazerod': './assets/level3/blaze_rod.png',
+            'arrow': './assets/level3/blaze_rod.png'
         };
     }
     _create_class(AssetLoader, [
@@ -248,9 +253,9 @@ export var AssetLoader = /*#__PURE__*/ function() {
             value: function loadAllAssets() {
                 var _this = this;
                 return _async_to_generator(function() {
-                    var loadPromises, error;
+                    var loadPromises, loadedAssets;
                     return _ts_generator(this, function(_state) {
-                        switch(_state.label){
+                        switch(_state.label) {
                             case 0:
                                 _state.trys.push([
                                     0,
@@ -267,15 +272,15 @@ export var AssetLoader = /*#__PURE__*/ function() {
                                     Promise.all(loadPromises)
                                 ];
                             case 1:
-                                _state.sent();
+                                loadedAssets = _state.sent();
                                 console.log('All assets loaded successfully');
                                 return [
                                     2,
                                     true
                                 ];
                             case 2:
-                                error = _state.sent();
-                                console.error('Error loading assets:', error);
+                                loadedAssets = _state.sent();
+                                console.error('Error loading assets:', loadedAssets);
                                 return [
                                     2,
                                     false

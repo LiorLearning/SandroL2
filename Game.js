@@ -13,6 +13,8 @@ import QuizPanel from './QuizPanel.js';
 // import Enderman from './Endermen.js';
 import { ResourceManager } from './ResourceManager.js';
 import Hammer from './Hammer.js';
+import Crossbow from './Crossbow.js';
+import Blaze from './Blaze.js';
 
 function _array_like_to_array(arr, len) {
     if (len == null || len > arr.length) len = arr.length;
@@ -247,6 +249,12 @@ var Game = /*#__PURE__*/ function() {
         this.hammers = [];
         this.hammerCooldown = 0;
         this.hammerCooldownTime = 1500; // 1.5 seconds between hammer throws
+
+        // Initialize crossbow array (for after portal)
+        this.arrows = [];
+        this.crossbowCooldown = 0; 
+        this.crossbowCooldownTime = 1000; // Slightly faster than hammer
+        this.enteredPortal = false; // Flag to track if player has entered portal
 
         // Initialize
         this.initializeGame(container);
@@ -671,16 +679,24 @@ var Game = /*#__PURE__*/ function() {
             key: "tryThrowHammer",
             value: function tryThrowHammer() {
                 // Don't throw if on cooldown
-                if (this.hammerCooldown > 0) {
-                    return false;
+                if (this.enteredPortal) {
+                    // Use crossbow after entering portal
+                    if (this.crossbowCooldown > 0) {
+                        return false;
+                    }
+                } else {
+                    // Use hammer before entering portal
+                    if (this.hammerCooldown > 0) {
+                        return false;
+                    }
                 }
                 
-                // Check if player is near any mining spots
+                // Check if player is near any mining spots (don't throw if mining)
                 const playerX = this.player.x;
                 const playerBounds = this.player.getBounds();
                 const miningCheckDistance = 100;
                 
-                // Check if player is close to a mining spot (if yes, don't throw hammer)
+                // Check if player is close to a mining spot (if yes, don't throw weapon)
                 for (const miningSpot of this.world.miningSpots) {
                     if (!miningSpot.active) continue;
                     
@@ -696,110 +712,197 @@ var Game = /*#__PURE__*/ function() {
                     };
                     
                     if (this.isColliding(playerBounds, miningBounds)) {
-                        return false; // Player is near mining spot, don't throw hammer
+                        return false; // Player is near mining spot, don't throw weapon
                     }
                 }
                 
-                // Player is not near mining spot, throw hammer
+                // Get player direction and position
                 const playerDirection = this.player.direction;
-                const hammerX = this.player.x + (playerDirection === 1 ? this.player.width : 0);
-                const hammerY = this.player.y + this.player.height * 0.3; // Slightly above middle
+                const weaponX = this.player.x + (playerDirection === 1 ? this.player.width : 0);
+                const weaponY = this.player.y + this.player.height * 0.3; // Slightly above middle
                 
-                // Create a new hammer
-                const hammer = new Hammer(hammerX, hammerY, playerDirection, this.assetLoader);
-                hammer.initialX = hammerX; // Store initial position for distance calculation
-                this.hammers.push(hammer);
-                
-                // Set cooldown
-                this.hammerCooldown = this.hammerCooldownTime;
-                
-                // Play throw sound
-                this.audioManager.play('collect', 1.2);
-                
-                // Apply screen shake
-                this.applyScreenShake(2);
-                
-                // Show throwing message
-                this.floatingTexts.push(new FloatingText("Hammer throw!", this.player.x, this.player.y - 20));
-                
-                return true; // Hammer was thrown
+                if (this.enteredPortal) {
+                    // Create a new crossbow arrow
+                    const arrow = new Crossbow(weaponX, weaponY, playerDirection, this.assetLoader);
+                    arrow.initialX = weaponX; // Store initial position for distance calculation
+                    this.arrows.push(arrow);
+                    
+                    // Set cooldown
+                    this.crossbowCooldown = this.crossbowCooldownTime;
+                    
+                    // Play throw sound
+                    this.audioManager.play('collect', 1.4);
+                    
+                    // Apply screen shake (less than hammer)
+                    this.applyScreenShake(1);
+                    
+                    // Show throwing message
+                    this.floatingTexts.push(new FloatingText("Crossbow shot!", this.player.x, this.player.y - 20));
+                    
+                    // Activate shield occasionally
+                    if (Math.random() < 0.3 && this.arrows.length > 0) {
+                        const latestArrow = this.arrows[this.arrows.length - 1];
+                        if (latestArrow.activateShield()) {
+                            this.floatingTexts.push(new FloatingText("Shield activated!", this.player.x, this.player.y - 40));
+                            this.audioManager.play('collect', 0.8);
+                        }
+                    }
+                    
+                    return true; // Arrow was shot
+                    
+                } else {
+                    // Create a new hammer (original behavior)
+                    const hammer = new Hammer(weaponX, weaponY, playerDirection, this.assetLoader);
+                    hammer.initialX = weaponX; // Store initial position for distance calculation
+                    this.hammers.push(hammer);
+                    
+                    // Set cooldown
+                    this.hammerCooldown = this.hammerCooldownTime;
+                    
+                    // Play throw sound
+                    this.audioManager.play('collect', 1.2);
+                    
+                    // Apply screen shake
+                    this.applyScreenShake(2);
+                    
+                    // Show throwing message
+                    this.floatingTexts.push(new FloatingText("Hammer throw!", this.player.x, this.player.y - 20));
+                    
+                    return true; // Hammer was thrown
+                }
             }
         },
         {
             key: "updateHammers",
             value: function updateHammers(deltaTime) {
-                // Update cooldown
+                // Update cooldowns
                 if (this.hammerCooldown > 0) {
                     this.hammerCooldown -= deltaTime;
                 }
                 
-                // Update each hammer
-                for (let i = this.hammers.length - 1; i >= 0; i--) {
-                    const hammer = this.hammers[i];
-                    hammer.update(deltaTime);
+                if (this.crossbowCooldown > 0) {
+                    this.crossbowCooldown -= deltaTime;
+                }
+                
+                if (!this.enteredPortal) {
+                    // BEFORE PORTAL: Update hammers and check enderman collisions
                     
-                    // Check for collisions with endermen
-                    let hitEnderman = false;
-                    // Make sure we're using the endermen from the world object
-                    const endermen = this.world.endermen;
-                    for (let j = 0; j < endermen.length; j++) {
-                        const enderman = endermen[j];
-                        // Use simple collision detection directly here instead of relying on hammer's method
-                        // Add debug info about enderman position
-                        console.log(`Checking enderman at x:${enderman.x}, y:${enderman.y}, platform:${enderman.platform ? 'yes' : 'no'}`);
-                        console.log(`Hammer at x:${hammer.x}, y:${hammer.y}`);
+                    // Update each hammer
+                    for (let i = this.hammers.length - 1; i >= 0; i--) {
+                        const hammer = this.hammers[i];
+                        hammer.update(deltaTime);
                         
-                        const collision = (
-                            hammer.x < enderman.x + enderman.width &&
-                            hammer.x + hammer.width > enderman.x &&
-                            hammer.y < enderman.y + enderman.height &&
-                            hammer.y + hammer.height > enderman.y
-                        );
-                        
-                        if (collision) {
-                            console.log("Collision detected!");
+                        // Check for collisions with endermen
+                        let hitEnderman = false;
+                        // Make sure we're using the endermen from the world object
+                        const endermen = this.world.endermen;
+                        for (let j = 0; j < endermen.length; j++) {
+                            const enderman = endermen[j];
+                            
+                            const collision = (
+                                hammer.x < enderman.x + enderman.width &&
+                                hammer.x + hammer.width > enderman.x &&
+                                hammer.y < enderman.y + enderman.height &&
+                                hammer.y + hammer.height > enderman.y
+                            );
+                            
+                            if (collision) {
+                                hitEnderman = true;
+                                
+                                // Trigger hit effect on hammer
+                                hammer.triggerHitEffect();
+                                
+                                // Deal 50 damage to the enderman
+                                const damageAmount = 50;
+                                const defeated = enderman.takeDamage(damageAmount);
+                                
+                                // Play hit sound
+                                this.audioManager.play('hurt', 0.9);
+                                
+                                // Apply screen shake
+                                this.applyScreenShake(4);
+                                
+                                // Show hit message
+                                this.floatingTexts.push(new FloatingText("-50% Health!", hammer.x, hammer.y - 20));
+                                
+                                // If enderman is defeated, remove it and spawn enderpearl
+                                if (defeated) {
+                                    // Remove enderman from the world's endermen array
+                                    this.world.endermen.splice(j, 1);
+                                    
+                                    // Spawn enderpearl at the correct position (considering platform height)
+                                    const spawnY = enderman.platform ? enderman.y + enderman.height : enderman.y;
+                                    this.spawnEnderpearl(enderman.x, spawnY);
+                                    
+                                    // Add defeated message
+                                    this.floatingTexts.push(new FloatingText("Enderman defeated!", hammer.x, hammer.y - 40));
+                                }
+                                
+                                // Break out of enderman loop
+                                break;
+                            }
                         }
                         
-                        if (collision) {
-                            hitEnderman = true;
-                            
-                            // Trigger hit effect on hammer
-                            hammer.triggerHitEffect();
-                            
-                            // Deal 50 damage to the enderman
-                            const damageAmount = 50;
-                            const defeated = enderman.takeDamage(damageAmount);
-                            
-                            // Play hit sound
-                            this.audioManager.play('hurt', 0.9);
-                            
-                            // Apply screen shake
-                            this.applyScreenShake(4);
-                            
-                            // Show hit message
-                            this.floatingTexts.push(new FloatingText("-50% Health!", hammer.x, hammer.y - 20));
-                            
-                            // If enderman is defeated, remove it and spawn enderpearl
-                            if (defeated) {
-                                // Remove enderman from the world's endermen array
-                                this.world.endermen.splice(j, 1);
-                                
-                // Spawn enderpearl at the correct position (considering platform height)
-                const spawnY = enderman.platform ? enderman.y + enderman.height : enderman.y;
-                this.spawnEnderpearl(enderman.x, spawnY);
-                                
-                                // Add defeated message
-                                this.floatingTexts.push(new FloatingText("Enderman defeated!", hammer.x, hammer.y - 40));
-                            }
-                            
-                            // Break out of enderman loop
-                            break;
+                        // Remove hammer if it hit something or is no longer active
+                        if (hitEnderman || !hammer.active) {
+                            this.hammers.splice(i, 1);
                         }
                     }
                     
-                    // Remove hammer if it hit something or is no longer active
-                    if (hitEnderman || !hammer.active) {
-                        this.hammers.splice(i, 1);
+                } else {
+                    // AFTER PORTAL: Update crossbow arrows and check blaze collisions
+                    
+                    // Update each arrow
+                    for (let i = this.arrows.length - 1; i >= 0; i--) {
+                        const arrow = this.arrows[i];
+                        arrow.update(deltaTime);
+                        
+                        // Check for collisions with blazes
+                        let hitBlaze = false;
+                        const blazes = this.world.blazes;
+                        for (let j = 0; j < blazes.length; j++) {
+                            const blaze = blazes[j];
+                            
+                            const collision = arrow.checkBlazeCollision(blaze);
+                            
+                            if (collision) {
+                                hitBlaze = true;
+                                
+                                // Deal 50 damage to the blaze
+                                const damageAmount = 50;
+                                const defeated = blaze.takeDamage(damageAmount);
+                                
+                                // Play hit sound
+                                this.audioManager.play('hurt', 1.1);
+                                
+                                // Apply screen shake
+                                this.applyScreenShake(4);
+                                
+                                // Show hit message
+                                this.floatingTexts.push(new FloatingText("-50% Health!", arrow.x, arrow.y - 20));
+                                
+                                // If blaze is defeated, remove it and spawn blaze rod
+                                if (defeated) {
+                                    // Remove blaze from the world's blazes array
+                                    this.world.blazes.splice(j, 1);
+                                    
+                                    // Spawn blaze rod at the correct position
+                                    const spawnY = blaze.platform ? blaze.y + blaze.height : blaze.y;
+                                    this.spawnBlazeRod(blaze.x, spawnY);
+                                    
+                                    // Add defeated message
+                                    this.floatingTexts.push(new FloatingText("Blaze defeated!", arrow.x, arrow.y - 40));
+                                }
+                                
+                                // Break out of blaze loop
+                                break;
+                            }
+                        }
+                        
+                        // Remove arrow if it hit something or is no longer active
+                        if (hitBlaze || !arrow.active) {
+                            this.arrows.splice(i, 1);
+                        }
                     }
                 }
             }
@@ -821,6 +924,22 @@ var Game = /*#__PURE__*/ function() {
             }
         },
         {
+            key: "spawnBlazeRod",
+            value: function spawnBlazeRod(x, y) {
+                // Add a blaze rod item to the world at the position where the blaze was hit
+                this.world.addItem({
+                    type: 'blazerod',
+                    x: x,
+                    y: y,
+                    width: 20,
+                    height: 20
+                });
+                
+                // Show message about dropped item
+                this.floatingTexts.push(new FloatingText("Blaze Rod dropped!", x, y - 40));
+            }
+        },
+        {
             key: "update",
             value: function update(timestamp) {
                 const deltaTime = timestamp - this.lastTimestamp;
@@ -838,11 +957,18 @@ var Game = /*#__PURE__*/ function() {
 
                 if (isPlaying) {
                     // Process game updates in logical order
-                    this.world.updateEndermen(deltaTime);
+                    if (this.enteredPortal) {
+                        // Update blazes after entering portal
+                        this.world.updateBlazes(deltaTime);
+                    } else {
+                        // Update endermen before entering portal 
+                        this.world.updateEndermen(deltaTime);
+                    }
+                    
                     this.world.updateMiningSpots(deltaTime);
                     this.player.update(deltaTime, this.world);
                     
-                    // Update hammers
+                    // Update hammers or arrows
                     this.updateHammers(deltaTime);
 
                     // Camera and viewport updates
@@ -870,12 +996,22 @@ var Game = /*#__PURE__*/ function() {
                     this.touchControls.update();
                     this.updateFloatingTexts(deltaTime);
 
-                    // Enderman collision check (only if player is not immune)
+                    // Enderman/Blaze collision check based on game stage
                     if (!this.player.isImmune) {
-                        const collidedEnderman = this.world.checkEndermanCollisions(this.player);
-                        if (collidedEnderman) {
-                            this.handleEndermanCollision();
+                        if (this.enteredPortal) {
+                            // Check for blaze collisions after entering portal
+                            const collidedBlaze = this.world.checkBlazeCollisions(this.player);
+                            if (collidedBlaze) {
+                                this.handleBlazeCollision();
+                            }
+                        } else {
+                            // Check for enderman collisions before entering portal
+                            const collidedEnderman = this.world.checkEndermanCollisions(this.player);
+                            if (collidedEnderman) {
+                                this.handleEndermanCollision();
+                            }
                         }
+                        
                         // Check for lava collision
                         if (this.checkLavaCollision()) {
                             this.handleLavaCollision();
@@ -1081,10 +1217,29 @@ var Game = /*#__PURE__*/ function() {
 
                 // We don't need to render endermen here since they're already rendered in world.render()
 
-                // Render hammers
-                this.hammers.forEach(hammer => {
-                    hammer.render(this.ctx, this.cameraOffset);
-                });
+                // Render hammers or arrows based on game stage
+                if (this.enteredPortal) {
+                    // Render arrows
+                    this.arrows.forEach(arrow => {
+                        arrow.render(this.ctx, this.cameraOffset);
+                        
+                        // If arrow has active shield, render it
+                        if (arrow.shieldTimer > 0) {
+                            arrow.renderShield(
+                                this.ctx, 
+                                this.player.x, 
+                                this.player.y, 
+                                this.cameraOffset,
+                                this.player.direction
+                            );
+                        }
+                    });
+                } else {
+                    // Render hammers (original stage)
+                    this.hammers.forEach(hammer => {
+                        hammer.render(this.ctx, this.cameraOffset);
+                    });
+                }
             }
         },
         {
@@ -1520,10 +1675,15 @@ var Game = /*#__PURE__*/ function() {
                     // Set flag to prevent repeated triggers
                     this.enteredPortal = true;
                     
-                    // Set timeout to transition to victory state after effect
-                    // setTimeout(() => {
-                    //     this.gameState = GAME_STATE.VICTORY;
-                    // }, 1000);
+                    // Replace endermen with blazes
+                    this.replaceEndermanWithBlazes();
+                    
+                    // Clear existing hammers and reset cooldowns
+                    this.hammers = [];
+                    this.hammerCooldown = 0;
+                    
+                    // Reset resource requirements for Stage 2
+                    this.updateResourceRequirements();
                     
                     return true;
                 }
@@ -1532,111 +1692,124 @@ var Game = /*#__PURE__*/ function() {
             }
         },
         {
-            key: "checkLavaCollision",
-            value: function checkLavaCollision() {
-                // Lava rivers data - each entry defines a river's position and size
-                const lavaRivers = [];
+            key: "replaceEndermanWithBlazes",
+            value: function replaceEndermanWithBlazes() {
+                // Get existing enderman positions
+                const blazePositions = [];
                 
-                // All rivers are at GROUND_LEVEL + 20 with height 10
-                const lavaY = GROUND_LEVEL + 20;
-                const lavaHeight = 10;
-                
-                // Get player position relative to world
-                const playerX = this.player.x;
-                const playerY = this.player.y + this.player.height;
-                const playerFeetWidth = this.player.width * 0.8; // Narrow collision for feet
-                const playerLeftFoot = playerX + this.player.width * 0.1;
-                const playerRightFoot = playerLeftFoot + playerFeetWidth;
-                
-                // Check if player's feet are at lava height
-                if (playerY >= lavaY && playerY <= lavaY + lavaHeight) {
-                    // Check collision with any river
-                    for (const river of lavaRivers) {
-                        // Check if any part of player's feet overlaps with river
-                        if ((playerLeftFoot >= river.start && playerLeftFoot <= river.end) || 
-                            (playerRightFoot >= river.start && playerRightFoot <= river.end) ||
-                            (playerLeftFoot <= river.start && playerRightFoot >= river.end)) {
-                            return true;
-                        }
-                    }
+                // Convert endermen to blaze positions
+                for (const enderman of this.world.endermen) {
+                    blazePositions.push({
+                        x: enderman.x,
+                        patrolStart: enderman.patrolStart,
+                        patrolEnd: enderman.patrolEnd,
+                        platform: enderman.platform
+                    });
                 }
                 
-                // Check for lava pit collisions as well
-                if (this.world.checkLavaPitCollision(this.player)) {
-                    return true;
+                // Clear endermen array and create blazes
+                this.world.blazes = [];
+                
+                // Create blazes at endermen positions
+                for (const pos of blazePositions) {
+                    const blaze = new Blaze(
+                        pos.x, 
+                        pos.patrolStart, 
+                        pos.patrolEnd, 
+                        pos.platform
+                    );
+                    this.world.blazes.push(blaze);
                 }
                 
-                return false;
+                // Add additional blazes for stage 2
+                const additionalBlazes = [
+                    { x: this.player.x + 300, patrolStart: this.player.x + 200, patrolEnd: this.player.x + 400 },
+                    { x: this.player.x + 500, patrolStart: this.player.x + 450, patrolEnd: this.player.x + 650 }
+                ];
+                
+                for (const pos of additionalBlazes) {
+                    const blaze = new Blaze(pos.x, pos.patrolStart, pos.patrolEnd);
+                    this.world.blazes.push(blaze);
+                }
+                
+                // Clear endermen array since we're now using blazes
+                this.world.endermen = [];
+                
+                // Show message about new enemies
+                this.floatingTexts.push(
+                    new FloatingText(
+                        "Blazes have appeared!", 
+                        this.player.x, 
+                        this.player.y - 80,
+                        2500
+                    )
+                );
             }
         },
         {
-            key: "handleLavaCollision",
-            value: function handleLavaCollision() {
-                // Similar to zombie collision but with lava-specific effects
-                var _this = this;
+            key: "updateResourceRequirements",
+            value: function updateResourceRequirements() {
+                // Use the ResourceManager's resetForStage2 method
+                this.resourceManager.resetForStage2();
                 
-                // Jump up slightly to get out of the lava
-                this.player.vy = -5;
-                
-                // Check if player has any resources to lose
-                var availableResources = [];
-                const resources = this.resourceManager.getResources();
-                for(var type in resources){
-                    if (resources[type] >= 5) {
-                        availableResources.push(type);
-                    }
-                }
-                if (availableResources.length > 0) {
-                    // Choose a random resource to reduce
-                    var resourceType = availableResources[Math.floor(Math.random() * availableResources.length)];
-                    this.resourceManager.removeResource(resourceType, 5);
-                    
-                    // Add visual feedback about resource loss
-                    this.floatingTexts.push(new FloatingText("-5 ".concat(resourceType, "!"), this.player.x, this.player.y - 40));
-                }
-                
-                // Add some visual feedback (lava specific)
-                this.floatingTexts.push(new FloatingText("Hot! Hot! Hot!", this.player.x, this.player.y - 20));
-                
-                // Play hurt sound effect
-                this.audioManager.play('hurt', 0.7);
-                
-                // Apply screen shake effect
-                this.applyScreenShake(5);
-                
-                // Visual indication of being hit
-                this.player.isHit = true;
-                this.player.isImmune = true;
-                this.player.immunityTimer = 0;
-                setTimeout(function() {
-                    _this.player.isHit = false;
-                }, 500);
-            },
+                // Show message about new resource requirements
+                setTimeout(() => {
+                    this.floatingTexts.push(
+                        new FloatingText(
+                            "New Objective: Collect Blaze Rods", 
+                            this.player.x, 
+                            this.player.y - 100,
+                            3000
+                        )
+                    );
+                }, 2000);
+            }
         },
         {
             key: "checkResourceCompletion",
             value: function checkResourceCompletion() {
-                // Get current resources
-                var resources = this.resourceManager.getResources();
-                
-                // Check if player has collected all required resources
-                if (resources.crossbow >= 1 && resources.shield >= 1 && resources.obsidian >= 4 && resources.enderpearl >= 2) {
-                    // All required resources collected, show a simple message
-                    this.floatingTexts.push(new FloatingText(
-                        "All resources collected!", 
-                        this.player.x, 
-                        this.player.y - 60,
-                        2000 // shorter duration
-                    ));
-                    
-                    // Play special sound
-                    this.audioManager.play('collect', 1.5);
-                    
-                    // Create portal in front of player (about 200px ahead)
-                    this.createPortal(this.player.x + 200, this.player.y - 40);
-                    
-                    // Set flag to prevent checking resources again
-                    this.resourceRequirementsMet = true;
+                if (this.enteredPortal) {
+                    // STAGE 2: Check for victory requirements
+                    if (this.resourceManager.checkVictoryRequirements(true)) {
+                        // All required resources collected for stage 2, show victory message
+                        this.floatingTexts.push(new FloatingText(
+                            "All resources collected! Victory!", 
+                            this.player.x, 
+                            this.player.y - 60,
+                            3000
+                        ));
+                        
+                        // Play victory sound
+                        this.audioManager.play('collect', 1.5);
+                        
+                        // Set resource completion flag
+                        this.resourceRequirementsMet = true;
+                        
+                        // Transition to victory screen after delay
+                        setTimeout(() => {
+                            this.gameState = GAME_STATE.VICTORY;
+                        }, 3000);
+                    }
+                } else {
+                    // STAGE 1: Check for portal creation requirements
+                    if (this.resourceManager.checkVictoryRequirements(false)) {
+                        // All required resources collected for stage 1, create portal
+                        this.floatingTexts.push(new FloatingText(
+                            "All resources collected!", 
+                            this.player.x, 
+                            this.player.y - 60,
+                            2000
+                        ));
+                        
+                        // Play special sound
+                        this.audioManager.play('collect', 1.5);
+                        
+                        // Create portal in front of player
+                        this.createPortal(this.player.x + 200, this.player.y - 40);
+                        
+                        // Set flag to prevent checking resources again
+                        this.resourceRequirementsMet = true;
+                    }
                 }
             }
         },
@@ -1771,6 +1944,151 @@ var Game = /*#__PURE__*/ function() {
                             velocityX: (Math.random() - 0.5) * 2
                         }
                     ));
+                }
+            }
+        },
+        {
+            key: "handleBlazeCollision",
+            value: function handleBlazeCollision() {
+                if (this.player.isImmune) return; // Skip if player is already immune
+                
+                // Check if any arrows have active shield
+                let hasShield = false;
+                for (const arrow of this.arrows) {
+                    if (arrow.shieldTimer > 0) {
+                        hasShield = true;
+                        
+                        // Show shield block message
+                        this.floatingTexts.push(new FloatingText(
+                            "Blocked by shield!", 
+                            this.player.x, 
+                            this.player.y - 40
+                        ));
+                        
+                        // Play shield sound
+                        this.audioManager.play('collect', 0.8);
+                        
+                        break;
+                    }
+                }
+                
+                // If shield is active, don't take damage
+                if (hasShield) return;
+                
+                // Take damage (same as enderman collision)
+                this.player.takeDamage(1);
+                
+                // Apply knockback in opposite direction to blaze
+                this.player.velocityX = this.player.x > this.cameraOffset + CANVAS_WIDTH / 2 ? -5 : 5;
+                this.player.velocityY = -5; // Add upward velocity (jump)
+                
+                // Make player immune for 1 second
+                this.player.makeImmune(1000);
+                
+                // Apply screen shake
+                this.applyScreenShake(5);
+                
+                // Show damage text
+                const floatingText = new FloatingText(
+                    'Fire damage!',
+                    this.player.x + this.player.width / 2, 
+                    this.player.y - 20,
+                );
+                this.floatingTexts.push(floatingText);
+                
+                // Play hurt sound
+                this.audioManager.play('hurt', 0.6);
+                
+                // Check if player is out of health
+                if (this.player.health <= 0) {
+                    // Reset player position
+                    this.player.x = 100;
+                    this.player.y = 300;
+                    this.player.health = 5;
+                    
+                    // Show game over text
+                    const gameOverText = new FloatingText(
+                        'Game Over - Try Again!',
+                        CANVAS_WIDTH / 2,
+                        CANVAS_HEIGHT / 2
+                    );
+                    this.floatingTexts.push(gameOverText);
+                }
+            }
+        },
+        {
+            key: "checkLavaCollision",
+            value: function checkLavaCollision() {
+                // Check if there are lava pools defined in the world
+                if (!this.world || !this.world.lavaPools || !this.world.lavaPools.length) {
+                    return false;
+                }
+                
+                // Get player bounds
+                const playerBounds = this.player.getBounds();
+                
+                // Check for collision with any lava pool
+                for (const lavaPool of this.world.lavaPools) {
+                    const lavaRect = {
+                        x: lavaPool.x,
+                        y: lavaPool.y,
+                        width: lavaPool.width,
+                        height: lavaPool.height
+                    };
+                    
+                    if (this.isColliding(playerBounds, lavaRect)) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
+        },
+        {
+            key: "handleLavaCollision",
+            value: function handleLavaCollision() {
+                if (this.player.isImmune) return; // Skip if player is already immune
+                
+                // Take more damage from lava than from mobs
+                this.player.takeDamage(2);
+                
+                // Apply knockback (mostly upward to get out of lava)
+                this.player.velocityX = (Math.random() - 0.5) * 6;
+                this.player.velocityY = -8; // Stronger upward velocity to escape lava
+                
+                // Make player immune for 1 second
+                this.player.makeImmune(1000);
+                
+                // Apply screen shake
+                this.applyScreenShake(7);
+                
+                // Show damage text
+                const floatingText = new FloatingText(
+                    'Lava damage!',
+                    this.player.x + this.player.width / 2, 
+                    this.player.y - 20,
+                    1000,
+                    { color: '#FF4500' }
+                );
+                this.floatingTexts.push(floatingText);
+                
+                // Play hurt sound (higher pitch for lava)
+                this.audioManager.play('hurt', 0.8);
+                
+                // Check if player is out of health
+                if (this.player.health <= 0) {
+                    // Reset player position
+                    this.player.x = 100;
+                    this.player.y = 300;
+                    this.player.health = 5;
+                    
+                    // Show game over text
+                    const gameOverText = new FloatingText(
+                        'Game Over - Try Again!',
+                        CANVAS_WIDTH / 2,
+                        CANVAS_HEIGHT / 2
+                    );
+                    this.floatingTexts.push(gameOverText);
                 }
             }
         }
