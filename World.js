@@ -243,39 +243,6 @@ var World = /*#__PURE__*/ function() {
                     var x = param.x, patrolStart = param.patrolStart, patrolEnd = param.patrolEnd;
                     _this.endermen.push(new Enderman(x, patrolStart, patrolEnd));
                 });
-                // Add endermen on platforms to make them more challenging
-                var platformEndermen = [
-                    {
-                        platformIndex: 1,
-                        patrolOffset: 20
-                    },
-                    {
-                        platformIndex: 3,
-                        patrolOffset: 20
-                    },
-                    {
-                        platformIndex: 5,
-                        patrolOffset: 20
-                    },
-                    {
-                        platformIndex: 7,
-                        patrolOffset: 20
-                    },
-                    {
-                        platformIndex: 9,
-                        patrolOffset: 20
-                    }
-                ];
-                platformEndermen.forEach(function(param) {
-                    var platformIndex = param.platformIndex, patrolOffset = param.patrolOffset;
-                    if (platformIndex < _this.platforms.length) {
-                        var platform = _this.platforms[platformIndex];
-                        var x = platform.x + platform.width / 2;
-                        var patrolStart = platform.x + patrolOffset;
-                        var patrolEnd = platform.x + platform.width - patrolOffset;
-                        _this.endermen.push(new Enderman(x, patrolStart, patrolEnd, platform));
-                    }
-                });
             }
         },
         {

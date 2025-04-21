@@ -502,7 +502,7 @@ var Game = /*#__PURE__*/ function() {
                 // If no mining action was handled, try to collect regular resources
                 // Check for nearby items to collect
                 const playerBounds = this.player.getBounds();
-                const collectionRange = 40; // Increased collection range
+                const collectionRange = 70; // Increased collection range
                 
                 // Expand player bounds for collection
                 const collectionBounds = {
@@ -1782,16 +1782,10 @@ var Game = /*#__PURE__*/ function() {
                     this.world.blazes.push(blaze);
                 }
                 
-                // Add additional blazes for stage 2
-                const additionalBlazes = [
-                    { x: this.player.x + 300, patrolStart: this.player.x + 200, patrolEnd: this.player.x + 400 },
-                    { x: this.player.x + 500, patrolStart: this.player.x + 450, patrolEnd: this.player.x + 650 }
-                ];
-                
-                for (const pos of additionalBlazes) {
-                    const blaze = new Blaze(pos.x, pos.patrolStart, pos.patrolEnd);
-                    this.world.blazes.push(blaze);
-                }
+                // for (const pos of additionalBlazes) {
+                //     const blaze = new Blaze(pos.x, pos.patrolStart, pos.patrolEnd);
+                //     this.world.blazes.push(blaze);
+                // }
                 
                 // Clear endermen array since we're now using blazes
                 this.world.endermen = [];
