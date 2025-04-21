@@ -276,7 +276,7 @@ class VictoryScreen {
         ctx.restore();
 
         // Render buttons
-        this.renderPixelButton(ctx, this.replayButton);
+        // this.renderPixelButton(ctx, this.replayButton);
         this.renderPixelButton(ctx, this.menuButton);
     }
 
