@@ -1488,13 +1488,42 @@ var Game = /*#__PURE__*/ function() {
                     // Apply screen shake for effect
                     this.applyScreenShake(8);
                     
+                    // Change background image to background2.png
+                    console.log("Changing background to background2.png");
+                    this._backgroundImage = this.assetLoader.getAsset('bg_Sandro2');
+                    if (!this._backgroundImage) {
+                        console.log("Background2 image not preloaded, loading now");
+                        this.assetLoader.loadImage('bg_Sandro2', './assets/level3/background2.png')
+                            .then(img => {
+                                console.log("Background2 image loaded successfully");
+                                this._backgroundImage = img;
+                            });
+                    } else {
+                        console.log("Using preloaded background2 image");
+                    }
+                    
+                    // Change dave image to dave2.png
+                    console.log("Changing Dave image to dave2.png");
+                    const dave2Image = this.assetLoader.getAsset('dave minecraft2');
+                    if (dave2Image) {
+                        console.log("Using preloaded dave2 image");
+                        this.assetLoader.assets['dave minecraft'] = dave2Image;
+                    } else {
+                        console.log("Dave2 image not preloaded, loading now");
+                        this.assetLoader.loadImage('dave minecraft2', './assets/level3/dave2.png')
+                            .then(img => {
+                                console.log("Dave2 image loaded successfully");
+                                this.assetLoader.assets['dave minecraft'] = img;
+                            });
+                    }
+                    
                     // Set flag to prevent repeated triggers
                     this.enteredPortal = true;
                     
                     // Set timeout to transition to victory state after effect
-                    setTimeout(() => {
-                        this.gameState = GAME_STATE.VICTORY;
-                    }, 1000);
+                    // setTimeout(() => {
+                    //     this.gameState = GAME_STATE.VICTORY;
+                    // }, 1000);
                     
                     return true;
                 }
