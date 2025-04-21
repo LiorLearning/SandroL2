@@ -82,37 +82,37 @@ class WelcomeScreen {
     }
 
     render(ctx) {
-        // Dark Nether background with gradient
+        // Dark End background with gradient
         const gradient = ctx.createLinearGradient(0, 0, 0, CANVAS_HEIGHT);
-        gradient.addColorStop(0, '#1a0f0f');
-        gradient.addColorStop(1, '#2d1212');
+        gradient.addColorStop(0, '#0f0f1a');
+        gradient.addColorStop(1, '#12122d');
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-        // Add subtle basalt texture pattern
-        this.renderBasaltTexture(ctx);
+        // Add subtle End stone texture pattern
+        this.renderEndTexture(ctx);
         
-        // Render floating embers
-        this.renderEmbers(ctx);
+        // Render floating End particles
+        this.renderEndParticles(ctx);
 
-        // Title with lava glow effect
+        // Title with Ender Eye glow effect
         const time = Date.now() / 1000;
         ctx.save();
         
         // Glow effect
-        ctx.shadowColor = '#ff4400';
+        ctx.shadowColor = '#9966ff';
         ctx.shadowBlur = 20 + Math.sin(time * 2) * 5;
-        ctx.fillStyle = '#ff6622';
+        ctx.fillStyle = '#bb99ff';
         ctx.font = 'bold 64px "Press Start 2P", monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('PIGLIN PANIC', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 3);
+        ctx.fillText('THE EYES OF ENDER', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 3);
 
         // Subtitle
         ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
         ctx.shadowBlur = 10;
         ctx.fillStyle = '#cccccc';
         ctx.font = '24px "Press Start 2P", monospace';
-        ctx.fillText('Craft fast or burn slow', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 3 + 50);
+        ctx.fillText('Level 3', CANVAS_WIDTH / 2, CANVAS_HEIGHT / 3 + 50);
 
         ctx.restore();
 
@@ -124,7 +124,7 @@ class WelcomeScreen {
         ctx.fillStyle = '#666666';
         ctx.font = '12px "Press Start 2P", monospace';
         ctx.textAlign = 'right';
-        ctx.fillText('Made in the Fires of the Nether', CANVAS_WIDTH - 20, CANVAS_HEIGHT - 20);
+        ctx.fillText('Journey to The End', CANVAS_WIDTH - 20, CANVAS_HEIGHT - 20);
     }
 
     renderPixelButton(ctx, button) {
@@ -133,14 +133,14 @@ class WelcomeScreen {
         // Button background with pixel border
         const gradient = ctx.createLinearGradient(button.x, button.y, button.x, button.y + button.height);
         if (button.hovered) {
-            gradient.addColorStop(0, '#ff4400');
-            gradient.addColorStop(1, '#cc3300');
-            ctx.shadowColor = '#ff6622';
+            gradient.addColorStop(0, '#9966ff');
+            gradient.addColorStop(1, '#6633cc');
+            ctx.shadowColor = '#aa88ff';
             ctx.shadowBlur = 15;
         } else {
-            gradient.addColorStop(0, '#441111');
-            gradient.addColorStop(1, '#330000');
-            ctx.shadowColor = '#ff4400';
+            gradient.addColorStop(0, '#221144');
+            gradient.addColorStop(1, '#110033');
+            ctx.shadowColor = '#9966ff';
             ctx.shadowBlur = 5;
         }
 
@@ -149,7 +149,7 @@ class WelcomeScreen {
         ctx.fillRect(button.x, button.y, button.width, button.height);
         
         // Pixel corners
-        ctx.fillStyle = button.hovered ? '#ff6622' : '#551111';
+        ctx.fillStyle = button.hovered ? '#aa88ff' : '#332255';
         ctx.fillRect(button.x - 2, button.y - 2, 4, 4);
         ctx.fillRect(button.x + button.width - 2, button.y - 2, 4, 4);
         ctx.fillRect(button.x - 2, button.y + button.height - 2, 4, 4);
@@ -165,39 +165,39 @@ class WelcomeScreen {
         ctx.restore();
     }
 
-    renderBasaltTexture(ctx) {
-        // Create subtle basalt texture pattern
+    renderEndTexture(ctx) {
+        // Create subtle End stone texture pattern
         for (let i = 0; i < 50; i++) {
             const x = Math.random() * CANVAS_WIDTH;
             const y = Math.random() * CANVAS_HEIGHT;
             const size = 1 + Math.random() * 3;
             
-            ctx.fillStyle = `rgba(40, 40, 40, ${Math.random() * 0.1})`;
-            ctx.fillRect(x, y, size, size * 2);
+            ctx.fillStyle = `rgba(220, 220, 240, ${Math.random() * 0.1})`;
+            ctx.fillRect(x, y, size, size);
         }
     }
 
-    renderEmbers(ctx) {
+    renderEndParticles(ctx) {
         const time = Date.now() / 1000;
         
-        // Create floating embers
+        // Create floating End particles
         for (let i = 0; i < 20; i++) {
             const x = (Math.sin(time * 0.5 + i) * 0.5 + 0.5) * CANVAS_WIDTH;
             const y = ((Math.cos(time * 0.3 + i) * 0.5 + 0.5) * CANVAS_HEIGHT * 0.8) + 
                      (Math.sin(time * 2 + i) * 5);
             
-            // Ember glow
+            // Particle glow
             const gradient = ctx.createRadialGradient(x, y, 0, x, y, 10);
-            gradient.addColorStop(0, 'rgba(255, 100, 0, 0.2)');
-            gradient.addColorStop(1, 'rgba(255, 50, 0, 0)');
+            gradient.addColorStop(0, 'rgba(153, 102, 255, 0.2)');
+            gradient.addColorStop(1, 'rgba(102, 51, 204, 0)');
             
             ctx.fillStyle = gradient;
             ctx.beginPath();
             ctx.arc(x, y, 10, 0, Math.PI * 2);
             ctx.fill();
             
-            // Ember core
-            ctx.fillStyle = '#ff6622';
+            // Particle core
+            ctx.fillStyle = '#bb99ff';
             ctx.beginPath();
             ctx.arc(x, y, 2, 0, Math.PI * 2);
             ctx.fill();
