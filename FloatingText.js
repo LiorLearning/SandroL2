@@ -19,7 +19,7 @@ function _create_class(Constructor, protoProps, staticProps) {
 }
 export var FloatingText = /*#__PURE__*/ function() {
     "use strict";
-    function FloatingText(text, x, y, color, lifespan, centered) {
+    function FloatingText(text, x, y, lifespan, options) {
         _class_call_check(this, FloatingText);
         this.text = text || '';
         this.x = x;
@@ -29,11 +29,22 @@ export var FloatingText = /*#__PURE__*/ function() {
         this.lifespan = lifespan || 1500; // Use provided lifespan or default to 1.5 seconds
         this.elapsed = 0;
         this.velocityY = -1.5; // Move upward
-        this.centered = centered || false;
+        this.velocityX = 0; // Default horizontal velocity
+        this.fontSize = 14; // Default font size
         
-        // Use the color parameter if provided
-        if (color) {
-            this.color = color;
+        // Process options if provided
+        if (options) {
+            if (typeof options === 'string') {
+                // For backward compatibility - treat as color
+                this.color = options;
+            } else if (typeof options === 'object') {
+                // New approach with options object
+                this.color = options.color || 'white';
+                this.fontSize = options.fontSize || 14;
+                this.velocityY = options.velocityY !== undefined ? options.velocityY : -1.5;
+                this.velocityX = options.velocityX || 0;
+                this.centered = options.centered || false;
+            }
         } else {
             // Determine color based on text content if it's a string
             if (typeof this.text === 'string') {
@@ -61,6 +72,7 @@ export var FloatingText = /*#__PURE__*/ function() {
             value: function update(deltaTime) {
                 // Update position
                 this.y += this.velocityY;
+                this.x += this.velocityX;
                 // Update animation properties
                 this.elapsed += deltaTime;
                 var progress = this.elapsed / this.lifespan;
@@ -95,7 +107,7 @@ export var FloatingText = /*#__PURE__*/ function() {
                 ctx.save();
                 ctx.globalAlpha = this.alpha;
                 ctx.fillStyle = this.color;
-                ctx.font = "".concat(14 * this.scale, "px Arial");
+                ctx.font = "".concat(this.fontSize * this.scale, "px Arial");
                 ctx.textAlign = 'center';
                 // Add text shadow for better visibility
                 ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';

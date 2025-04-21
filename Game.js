@@ -297,7 +297,8 @@ var Game = /*#__PURE__*/ function() {
                                     feather: 0,
                                     crossbow: 0,
                                     shield: 0,
-                                    obsidian: 0
+                                    obsidian: 0,
+                                    enderpearl: 0
                                 };
                                 
                                 // Initialize resource manager
@@ -491,11 +492,49 @@ var Game = /*#__PURE__*/ function() {
                 }
                 
                 // If no mining action was handled, try to collect regular resources
-                const collectedItem = this.world.checkCollision(this.player);
-                if (!collectedItem) return;
+                // Check for nearby items to collect
+                const playerBounds = this.player.getBounds();
+                const collectionRange = 40; // Increased collection range
+                
+                // Expand player bounds for collection
+                const collectionBounds = {
+                    x: playerBounds.x - collectionRange/2,
+                    y: playerBounds.y - collectionRange/2,
+                    width: playerBounds.width + collectionRange,
+                    height: playerBounds.height + collectionRange
+                };
+                
+                // Check all items in the world
+                let collectedItem = null;
+                for (let i = 0; i < this.world.items.length; i++) {
+                    const item = this.world.items[i];
+                    
+                    // Create item bounds
+                    const itemBounds = {
+                        x: item.x,
+                        y: item.y,
+                        width: item.width || 20,
+                        height: item.height || 20
+                    };
+                    
+                    // Check if item is within collection range
+                    if (this.isColliding(collectionBounds, itemBounds)) {
+                        collectedItem = item;
+                        break;
+                    }
+                }
+                
+                if (!collectedItem) {
+                    // Show message if no item found
+                    this.floatingTexts.push(new FloatingText("Nothing to collect nearby", this.player.x, this.player.y - 20));
+                    return;
+                }
 
                 const { type, x, y } = collectedItem;
                 const amount = 1; // Standard amount for all resources
+                
+                // Show collection message
+                this.floatingTexts.push(new FloatingText(`Collected ${type}!`, x, y - 20));
                 
                 // Add to resources through the resource manager
                 this.resourceManager.addResource(type, amount);
@@ -503,8 +542,8 @@ var Game = /*#__PURE__*/ function() {
                 // Remove the item from the world
                 this.world.removeItem(collectedItem);
                 
-                // Update crafting panel
-                this.craftingPanel.updateResources(this.resources);
+                // Update crafting panel with resources from the resource manager 
+                this.craftingPanel.updateResources(this.resourceManager.getResources());
                 this.craftingPanel.highlightResource(type);
                 
                 // Create floating text
@@ -706,12 +745,20 @@ var Game = /*#__PURE__*/ function() {
                     for (let j = 0; j < endermen.length; j++) {
                         const enderman = endermen[j];
                         // Use simple collision detection directly here instead of relying on hammer's method
+                        // Add debug info about enderman position
+                        console.log(`Checking enderman at x:${enderman.x}, y:${enderman.y}, platform:${enderman.platform ? 'yes' : 'no'}`);
+                        console.log(`Hammer at x:${hammer.x}, y:${hammer.y}`);
+                        
                         const collision = (
                             hammer.x < enderman.x + enderman.width &&
                             hammer.x + hammer.width > enderman.x &&
                             hammer.y < enderman.y + enderman.height &&
                             hammer.y + hammer.height > enderman.y
                         );
+                        
+                        if (collision) {
+                            console.log("Collision detected!");
+                        }
                         
                         if (collision) {
                             hitEnderman = true;
@@ -737,8 +784,9 @@ var Game = /*#__PURE__*/ function() {
                                 // Remove enderman from the world's endermen array
                                 this.world.endermen.splice(j, 1);
                                 
-                                // Spawn enderpearl
-                                this.spawnEnderpearl(enderman.x, enderman.y);
+                // Spawn enderpearl at the correct position (considering platform height)
+                const spawnY = enderman.platform ? enderman.y + enderman.height : enderman.y;
+                this.spawnEnderpearl(enderman.x, spawnY);
                                 
                                 // Add defeated message
                                 this.floatingTexts.push(new FloatingText("Enderman defeated!", hammer.x, hammer.y - 40));
@@ -1016,6 +1064,11 @@ var Game = /*#__PURE__*/ function() {
                         break;
                 }
                 
+                // Render the portal if it exists
+                if (this.portal && this.portal.active) {
+                    this.renderPortal();
+                }
+                
                 // Render completion message if available
                 if (this.resourceCompletionMessage) {
                     this.renderCompletionMessage();
@@ -1026,17 +1079,7 @@ var Game = /*#__PURE__*/ function() {
                     this.ctx.restore();
                 }
 
-                // Render endermen if they exist
-                if (this.endermen) {
-                    this.ctx.save();
-                    this.ctx.translate(-this.cameraOffset, 0);
-                    
-                    this.endermen.forEach(enderman => {
-                        enderman.render(this.ctx, this.cameraOffset, this.assetLoader);
-                    });
-                    
-                    this.ctx.restore();
-                }
+                // We don't need to render endermen here since they're already rendered in world.render()
 
                 // Render hammers
                 this.hammers.forEach(hammer => {
@@ -1066,10 +1109,13 @@ var Game = /*#__PURE__*/ function() {
                 const baseSpeed = 0.5;
                 let currentSpeed = baseSpeed;
                 
-                // Calculate current speed based on gold collected (same formula as in Enderman.js)
-                if (this.resources && this.resources.goldNuggets !== undefined) {
-                    const goldNuggets = this.resources.goldNuggets;
-                    const speedIncreases = Math.floor(goldNuggets / 6);
+                // Get resources from resource manager
+                const resources = this.resourceManager.getResources();
+                
+                // Calculate current speed based on enderpearls collected
+                if (resources && resources.enderpearl !== undefined) {
+                    const enderpearlsCollected = resources.enderpearl;
+                    const speedIncreases = Math.floor(enderpearlsCollected / 2);
                     currentSpeed = Math.min(baseSpeed + speedIncreases * 0.1, 1.2);
                 }
                 
@@ -1457,17 +1503,17 @@ var Game = /*#__PURE__*/ function() {
                 
                 // Check if player has any resources to lose
                 var availableResources = [];
-                for(var type in this.resources){
-                    if (this.resources[type] >= 5) {
+                const resources = this.resourceManager.getResources();
+                for(var type in resources){
+                    if (resources[type] >= 5) {
                         availableResources.push(type);
                     }
                 }
                 if (availableResources.length > 0) {
                     // Choose a random resource to reduce
                     var resourceType = availableResources[Math.floor(Math.random() * availableResources.length)];
-                    this.resources[resourceType] -= 5;
-                    // Update crafting panel
-                    this.craftingPanel.updateResources(this.resources);
+                    this.resourceManager.removeResource(resourceType, 5);
+                    
                     // Add visual feedback about resource loss
                     this.floatingTexts.push(new FloatingText("-5 ".concat(resourceType, "!"), this.player.x, this.player.y - 40));
                 }
@@ -1577,6 +1623,140 @@ var Game = /*#__PURE__*/ function() {
                 this.ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
                 this.ctx.font = 'bold 20px Arial';
                 this.ctx.fillText('You may now proceed to the next stage!', messageX, messageY + 90);
+            }
+        },
+        {
+            key: "createPortal",
+            value: function createPortal(x, y) {
+                // Create a portal object
+                this.portal = {
+                    x: x,
+                    y: y,
+                    width: 64,
+                    height: 128,
+                    active: true,
+                    creationTime: Date.now()
+                };
+                
+                // Play portal creation sound
+                this.audioManager.play('collect', 1.0);
+                
+                // Add screen shake effect
+                this.applyScreenShake(5);
+                
+                // Add floating text
+                this.floatingTexts.push(new FloatingText(
+                    "Portal created!", 
+                    x, 
+                    y - 30,
+                    2000, // longer duration
+                    { color: '#AA55FF' } // Purple color
+                ));
+                
+                console.log("Portal created at", x, y);
+            }
+        },
+        {
+            key: "renderPortal",
+            value: function renderPortal() {
+                if (!this.portal) return;
+                
+                // Calculate portal screen position
+                const portalScreenX = this.portal.x - this.cameraOffset;
+                
+                // Get portal image if it exists
+                const portalImage = this.assetLoader.getAsset('portal');
+                
+                if (portalImage) {
+                    // Draw portal image
+                    this.ctx.save();
+                    
+                    // Add glow effect
+                    const elapsedTime = Date.now() - this.portal.creationTime;
+                    const glowIntensity = 0.5 + Math.sin(elapsedTime / 200) * 0.2;
+                    
+                    // Draw glow
+                    this.ctx.globalAlpha = glowIntensity;
+                    this.ctx.shadowColor = '#AA55FF'; // Purple glow
+                    this.ctx.shadowBlur = 15;
+                    
+                    // Draw the portal
+                    this.ctx.drawImage(
+                        portalImage, 
+                        portalScreenX, 
+                        this.portal.y, 
+                        this.portal.width, 
+                        this.portal.height
+                    );
+                    
+                    this.ctx.restore();
+                } else {
+                    // Fallback if no portal image is available
+                    this.ctx.save();
+                    
+                    // Create a pulsing animation
+                    const elapsedTime = Date.now() - this.portal.creationTime;
+                    const pulseScale = 1 + Math.sin(elapsedTime / 300) * 0.1;
+                    
+                    // Create portal gradient
+                    const gradient = this.ctx.createLinearGradient(
+                        portalScreenX, 
+                        this.portal.y, 
+                        portalScreenX + this.portal.width, 
+                        this.portal.y + this.portal.height
+                    );
+                    
+                    gradient.addColorStop(0, '#301934'); // Dark purple
+                    gradient.addColorStop(0.5, '#8A2BE2'); // Purple
+                    gradient.addColorStop(1, '#301934'); // Dark purple
+                    
+                    // Draw portal rectangle with gradient
+                    this.ctx.fillStyle = gradient;
+                    
+                    // Add glow effect
+                    this.ctx.shadowColor = '#AA55FF';
+                    this.ctx.shadowBlur = 15;
+                    
+                    // Apply pulse effect
+                    this.ctx.translate(
+                        portalScreenX + this.portal.width/2, 
+                        this.portal.y + this.portal.height/2
+                    );
+                    this.ctx.scale(pulseScale, pulseScale);
+                    this.ctx.translate(
+                        -(portalScreenX + this.portal.width/2), 
+                        -(this.portal.y + this.portal.height/2)
+                    );
+                    
+                    // Draw the portal rectangle
+                    this.ctx.fillRect(
+                        portalScreenX, 
+                        this.portal.y, 
+                        this.portal.width, 
+                        this.portal.height
+                    );
+                    
+                    this.ctx.restore();
+                }
+                
+                // Add particles effect around the portal
+                if (Math.random() < 0.3) {
+                    const particleX = portalScreenX + Math.random() * this.portal.width;
+                    const particleY = this.portal.y + Math.random() * this.portal.height;
+                    
+                    this.floatingTexts.push(new FloatingText(
+                        "*", 
+                        particleX + this.cameraOffset, 
+                        particleY,
+                        1000, // duration
+                        {
+                            color: '#AA55FF',
+                            fontSize: 12 + Math.random() * 8,
+                            velocityY: -1 - Math.random(),
+                            velocityX: (Math.random() - 0.5) * 2
+                        }
+                    ));
+                }
             }
         }
     ]);

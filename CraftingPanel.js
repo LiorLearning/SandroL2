@@ -17,6 +17,15 @@ export class CraftingPanel {
             enderpearl: 2
         };
         
+        // Add craft button
+        this.craftButton = {
+            width: 120,
+            height: 40,
+            x: this.x + (this.width - 120) / 2,
+            y: this.y + 195,
+            visible: false
+        };
+        
         // Remove the click handler as we're no longer using a craft button
         this.handleClick = this.handleClick.bind(this);
         this.game.canvas.addEventListener('click', this.handleClick);
@@ -37,8 +46,41 @@ export class CraftingPanel {
     }
 
     handleClick(e) {
-        // Keep this method empty but present to avoid breaking existing code
-        // We're no longer using a craft button
+        // Check if craft button is clicked
+        if (this.craftButton.visible) {
+            const rect = this.game.canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            if (mouseX >= this.craftButton.x && 
+                mouseX <= this.craftButton.x + this.craftButton.width &&
+                mouseY >= this.craftButton.y && 
+                mouseY <= this.craftButton.y + this.craftButton.height) {
+                
+                // Create portal
+                this.createPortal();
+            }
+        }
+    }
+
+    createPortal() {
+        // Use all obsidian
+        this.resources.obsidian = 0;
+        
+        // Create portal in front of player
+        const portalX = this.game.player.x;
+        const portalY = this.game.player.y - 50;
+        
+        // Create portal object (to be implemented in game.js)
+        if (typeof this.game.createPortal === 'function') {
+            this.game.createPortal(portalX, portalY);
+        }
+        
+        // Play sound
+        this.game.audioManager.play('collect', 0.8);
+        
+        // Update resources
+        this.updateResources(this.resources);
     }
 
     render(ctx) {
@@ -103,6 +145,26 @@ export class CraftingPanel {
             this.x + this.width / 2, 
             this.y + 185
         );
+        
+        // Show craft button if all requirements are met
+        this.craftButton.visible = allRequirementsMet;
+        if (this.craftButton.visible) {
+            // Draw craft button
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(this.craftButton.x, this.craftButton.y, this.craftButton.width, this.craftButton.height);
+            
+            // Button border
+            ctx.strokeStyle = '#2C1D06';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(this.craftButton.x, this.craftButton.y, this.craftButton.width, this.craftButton.height);
+            
+            // Button text
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Create Portal', this.craftButton.x + this.craftButton.width / 2, this.craftButton.y + this.craftButton.height / 2);
+        }
     }
 
     renderResourceRequirement(ctx, label, resourceType, required, yPos) {
