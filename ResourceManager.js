@@ -74,10 +74,10 @@ export var ResourceManager = /*#__PURE__*/ function() {
             strings: 0,
             flint: 0,
             feather: 0,
-            crossbow: 1,
-            shield: 1,
-            obsidian: 3,
-            enderpearl: 2,
+            crossbow: 0,
+            shield: 0,
+            obsidian: 0,
+            enderpearl: 1,
             blazerod: 0 // Add blaze rod resource
         };
         // Simplified crafting requirements
