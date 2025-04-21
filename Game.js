@@ -701,10 +701,23 @@ var Game = /*#__PURE__*/ function() {
                     
                     // Check for collisions with endermen
                     let hitEnderman = false;
-                    for (let j = 0; j < this.endermen.length; j++) {
-                        const enderman = this.endermen[j];
-                        if (hammer.checkEndermanCollision(enderman)) {
+                    // Make sure we're using the endermen from the world object
+                    const endermen = this.world.endermen;
+                    for (let j = 0; j < endermen.length; j++) {
+                        const enderman = endermen[j];
+                        // Use simple collision detection directly here instead of relying on hammer's method
+                        const collision = (
+                            hammer.x < enderman.x + enderman.width &&
+                            hammer.x + hammer.width > enderman.x &&
+                            hammer.y < enderman.y + enderman.height &&
+                            hammer.y + hammer.height > enderman.y
+                        );
+                        
+                        if (collision) {
                             hitEnderman = true;
+                            
+                            // Trigger hit effect on hammer
+                            hammer.triggerHitEffect();
                             
                             // Deal 50 damage to the enderman
                             const damageAmount = 50;
@@ -721,8 +734,8 @@ var Game = /*#__PURE__*/ function() {
                             
                             // If enderman is defeated, remove it and spawn enderpearl
                             if (defeated) {
-                                // Remove enderman
-                                this.endermen.splice(j, 1);
+                                // Remove enderman from the world's endermen array
+                                this.world.endermen.splice(j, 1);
                                 
                                 // Spawn enderpearl
                                 this.spawnEnderpearl(enderman.x, enderman.y);

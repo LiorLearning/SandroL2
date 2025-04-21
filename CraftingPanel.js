@@ -81,12 +81,6 @@ export class CraftingPanel {
         ctx.moveTo(this.x + 10, this.y + 35);
         ctx.lineTo(this.x + this.width - 10, this.y + 35);
         ctx.stroke();
-        
-        // Draw the goal title
-        ctx.fillStyle = '#FFCC33'; // Amber color
-        ctx.font = 'italic 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Goal: Collect items to escape the Nether', this.x + this.width / 2, this.y + 45);
 
         // Draw resource requirements with status indicators
         this.renderResourceRequirement(ctx, 'Crossbow', 'crossbow', 1, 70);
@@ -109,12 +103,6 @@ export class CraftingPanel {
             this.x + this.width / 2, 
             this.y + 185
         );
-
-        // Draw instructions
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-        ctx.font = '12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Mine for items and throw hammer (E) at endermen', this.x + this.width / 2, this.y + 205);
     }
 
     renderResourceRequirement(ctx, label, resourceType, required, yPos) {
@@ -189,34 +177,6 @@ export class CraftingPanel {
         ctx.font = 'bold 14px Arial';
         ctx.textAlign = 'right';
         ctx.fillText(`${current}/${required}`, this.x + this.width - 15, this.y + yPos);
-
-        // Progress bar
-        const barWidth = 120; // Adjusted width
-        const barHeight = 6;
-        const barX = this.x + 70; // Moved right to accommodate larger image
-        const barY = this.y + yPos + 8;
-        
-        // Background bar with border
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-        ctx.fillRect(barX - 1, barY - 1, barWidth + 2, barHeight + 2);
-        
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.fillRect(barX, barY, barWidth, barHeight);
-        
-        // Progress with gradient
-        const progress = Math.min(current / required, 1);
-        if (progress > 0) {
-            const gradient = ctx.createLinearGradient(barX, barY, barX + barWidth * progress, barY);
-            if (isMet) {
-                gradient.addColorStop(0, '#388E3C'); // Darker green
-                gradient.addColorStop(1, '#4CAF50'); // Lighter green
-            } else {
-                gradient.addColorStop(0, '#555555'); // Dark gray
-                gradient.addColorStop(1, '#777777'); // Light gray
-            }
-            ctx.fillStyle = gradient;
-            ctx.fillRect(barX, barY, barWidth * progress, barHeight);
-        }
     }
 
     cleanup() {

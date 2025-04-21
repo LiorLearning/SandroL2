@@ -10,6 +10,7 @@ export default class Hammer {
         this.assetLoader = assetLoader;
         this.rotationAngle = 0;
         this.rotationSpeed = 0.2;
+        this.initialX = x; // Store initial position for distance calculation
         
         // Add hit effect properties
         this.isHitting = false;
@@ -163,4 +164,4 @@ export default class Hammer {
         
         ctx.restore();
     }
-} 
+}
