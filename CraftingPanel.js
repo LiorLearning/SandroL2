@@ -105,7 +105,7 @@ export class CraftingPanel {
             );
             
             // Apply screen shake for effect
-            this.game.applyScreenShake(8);
+            this.game.applyScreenShake(2);
             
             // Update resources display
             this.updateResources(this.resources);
@@ -138,7 +138,7 @@ export class CraftingPanel {
                 const fortressImage = this.game.assetLoader.getAsset('fortress');
                 if (!fortressImage) {
                     // If fortress image isn't loaded yet, try to load it
-                    this.game.assetLoader.loadImage('fortress', 'assets/level3/fortress.png')
+                    this.game.assetLoader.loadImage('fortress', 'assets/level3/fort.png')
                         .then(() => {
                             // Refresh the fortress rendering
                             if (this.game.fortress) {
@@ -163,7 +163,7 @@ export class CraftingPanel {
             );
             
             // Apply screen shake for effect
-            this.game.applyScreenShake(10);
+            this.game.applyScreenShake(2);
             
             // Update resources display
             this.updateResources(this.resources);

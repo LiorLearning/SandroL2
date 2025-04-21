@@ -248,7 +248,7 @@ class VictoryScreen {
         ctx.fillStyle = '#ff6622';
         ctx.font = 'bold 48px "Press Start 2P", monospace';
         ctx.textAlign = 'center';
-        ctx.fillText('🔥 Level 2 Complete! 🔥', CANVAS_WIDTH / 2, titleY);
+        ctx.fillText('🔥 Level 3 Complete! 🔥', CANVAS_WIDTH / 2, titleY);
 
         // Story text with fade-in and floating effect
         const storyY = CANVAS_HEIGHT * 0.45;
@@ -258,7 +258,7 @@ class VictoryScreen {
         ctx.shadowBlur = 10;
         ctx.fillStyle = '#cccccc';
         ctx.font = '16px "Press Start 2P", monospace';
-        ctx.fillText('Steve crafted the boots.', CANVAS_WIDTH / 2, storyY + floatOffset);
+        ctx.fillText('Steve collected the ender pearls and the blaze rods.', CANVAS_WIDTH / 2, storyY + floatOffset);
         ctx.fillText('The Endermen retreated.', CANVAS_WIDTH / 2, storyY + 30 + floatOffset);
         ctx.fillText('The Nether trembled beneath his feet.', CANVAS_WIDTH / 2, storyY + 60 + floatOffset);
 
@@ -269,9 +269,9 @@ class VictoryScreen {
         ctx.shadowColor = '#0000ff';
         ctx.shadowBlur = 15 + Math.sin(time * 3) * 5;
         ctx.font = 'bold 24px "Press Start 2P", monospace';
-        ctx.strokeText('⚔️ Level 3: To Be Designed by Sandro ⚔️', CANVAS_WIDTH / 2, nextLevelY);
+        // ctx.strokeText('⚔️ Level 4: To Be Created by Sandro ⚔️', CANVAS_WIDTH / 2, nextLevelY);
         ctx.fillStyle = '#ffffff';
-        ctx.fillText('⚔️ Level 3: To Be Designed by Sandro ⚔️', CANVAS_WIDTH / 2, nextLevelY);
+        ctx.fillText('⚔️ Level 4: To Be Created by Sandro ⚔️', CANVAS_WIDTH / 2, nextLevelY);
 
         ctx.restore();
 

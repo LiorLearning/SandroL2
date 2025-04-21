@@ -670,6 +670,15 @@ var Game = /*#__PURE__*/ function() {
             }
         },
         {
+            // Special method for fortress entry - no screen shake
+            key: "applyFortressShake",
+            value: function applyFortressShake() {
+                // No screen shake for fortress entry
+                this.screenShakeIntensity = 0;
+                this.screenShakeTimer = 0;
+            }
+        },
+        {
             key: "isColliding",
             value: function isColliding(rect1, rect2) {
                 return rect1.x < rect2.x + rect2.width && rect1.x + rect1.width > rect2.x && rect1.y < rect2.y + rect2.height && rect1.y + rect1.height > rect2.y;
@@ -1690,7 +1699,7 @@ var Game = /*#__PURE__*/ function() {
                     );
                     
                     // Apply screen shake for effect
-                    this.applyScreenShake(8);
+                    this.applyScreenShake(2);
                     
                     // Change background image to background2.png
                     console.log("Changing background to background2.png");
@@ -2162,7 +2171,7 @@ var Game = /*#__PURE__*/ function() {
                 this.audioManager.play('collect', 1.2);
                 
                 // Add screen shake effect
-                this.applyScreenShake(7);
+                this.applyScreenShake(2);
                 
                 // Add floating text
                 this.floatingTexts.push(new FloatingText(
@@ -2320,19 +2329,18 @@ var Game = /*#__PURE__*/ function() {
                     );
                     
                     // Apply screen shake for effect
-                    this.applyScreenShake(10);
+                    this.applyScreenShake(2);
                     
                     // Display a popup message
                     this.victoryMessage = {
-                        text: "Congratulations! Next level to be designed by Sandro!",
+                        text: "Congratulations! Next level to be created by Sandro!",
                         time: Date.now(),
                         duration: 5000 // Show for 5 seconds before transition
                     };
                     
-                    // Transition to victory screen after delay
-                    setTimeout(() => {
-                        this.gameState = GAME_STATE.VICTORY;
-                    }, 5000);
+                    // Immediately set game state to victory and show victory screen
+                    this.gameState = GAME_STATE.VICTORY;
+                    this.victoryScreen.show();
                     
                     return true;
                 }
@@ -2357,7 +2365,7 @@ var Game = /*#__PURE__*/ function() {
                 this.audioManager.play('collect', 1.2);
                 
                 // Add screen shake effect
-                this.applyScreenShake(8);
+                this.applyScreenShake(2);
                 
                 // Add floating text
                 this.floatingTexts.push(new FloatingText(
@@ -2372,7 +2380,7 @@ var Game = /*#__PURE__*/ function() {
                 
                 // Preload fortress image if not already loaded
                 if (!this.assetLoader.getAsset('fortress')) {
-                    this.assetLoader.loadImage('fortress', './assets/level3/fortress.png')
+                    this.assetLoader.loadImage('fortress', './assets/level3/fort.png')
                         .then(() => {
                             console.log("Fortress image loaded successfully");
                         })
@@ -2387,7 +2395,6 @@ var Game = /*#__PURE__*/ function() {
                 }, 100);
             }
         },
-        
         {
             key: "checkFortressCollision",
             value: function checkFortressCollision() {
@@ -2413,33 +2420,32 @@ var Game = /*#__PURE__*/ function() {
                 
                 // If player collides with fortress
                 if (this.isColliding(playerRect, fortressRect)) {
-                    // Play discovery sound
+                    // Play victory sound
                     this.audioManager.play('collect', 1.5);
                     
-                    // Show "Found Blaze Spawner" message
+                    // Show victory message
                     this.floatingTexts.push(new FloatingText(
-                        "Found Blaze Spawner! More Blazes will appear now!", 
+                        "Victory! You've reached the Blaze Spawner!", 
                         this.player.x, 
                         this.player.y - 70,
                         4000, // longer duration
                         { color: '#FFAA00', fontSize: 20 } // Amber color, larger text
                     ));
                     
-                    // Increase blaze spawn rate
-                    this.blazeSpawnRate = 3; // Increase the rate
-                    
-                    // Spawn a few blazes immediately
-                    for (let i = 0; i < 3; i++) {
-                        setTimeout(() => {
-                            const spawnX = this.fortress.x + (Math.random() * this.fortress.width);
-                            const spawnY = this.fortress.y + (Math.random() * this.fortress.height);
-                            this.spawnBlaze(spawnX, spawnY);
-                        }, i * 800);
-                    }
+                    // Apply screen shake for dramatic effect
+                    this.applyFortressShake();
                     
                     // Deactivate fortress collision detection
                     this.fortress.active = false;
                     clearInterval(this.fortressCheckInterval);
+                    
+                    // Set game state to victory
+                    this.gameState = GAME_STATE.VICTORY;
+                    
+                    // Show victory screen after a short delay
+                    setTimeout(() => {
+                        this.victoryScreen.show("You've completed the Minecraft adventure!");
+                    }, 2000);
                     
                     return true;
                 }
@@ -2539,31 +2545,6 @@ var Game = /*#__PURE__*/ function() {
                 }
             }
         },
-        
-        {
-            key: "spawnBlaze",
-            value: function spawnBlaze(x, y) {
-                // Create a new blaze enemy
-                const blaze = {
-                    x: x,
-                    y: y,
-                    width: 40,
-                    height: 60,
-                    velocityX: (Math.random() - 0.5) * 2,
-                    velocityY: (Math.random() - 0.5) * 2,
-                    health: 3,
-                    damage: 1,
-                    type: 'blaze',
-                    lastShot: 0,
-                    shotInterval: 2000 + Math.random() * 1000
-                };
-                
-                // Add to enemies array
-                this.enemies.push(blaze);
-                
-                return blaze;
-            }
-        }
     ]);
     return Game;
 }();
