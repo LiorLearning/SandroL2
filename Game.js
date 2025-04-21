@@ -199,6 +199,7 @@ import { AudioManager } from './AudioManager.js';
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GROUND_LEVEL, GAME_STATE, MINING_REQUIRED_CLICKS } from './constants.js';
 import { FloatingText } from './FloatingText.js';
 import QuizPanel from './QuizPanel.js';
+import Enderman from './Endermen.js';
 var Game = /*#__PURE__*/ function() {
     "use strict";
     function Game(container) {
@@ -219,6 +220,8 @@ var Game = /*#__PURE__*/ function() {
                 height: 120,
                 active: false
             },
+            // Initialize empty endermen array - will be populated when game starts
+            endermen: [],
             // Nether theme colors
             _netherColors: {
                 lava: '#FF4500',
@@ -230,7 +233,7 @@ var Game = /*#__PURE__*/ function() {
             // Environment elements
             _lavaParticles: [],
             _floatingEmbers: [],
-            _piglinDistance: 0,
+            _endermanDistance: 0,
             bootsCrafted: false
         });
         // Pre-bind methods
@@ -291,6 +294,24 @@ var Game = /*#__PURE__*/ function() {
                                 _this.craftingPanel = new CraftingPanel(_this.resources, _this);
                                 _this.quizPanel = new QuizPanel(_this);
                                 _this.floatingTexts = [];
+                                
+                                // Get platforms from world to place endermen on
+                                const platforms = _this.world.platforms;
+                                
+                                // Initialize endermen as empty array - will populate when game starts
+                                _this.endermen = [];
+                                
+                                if (platforms && platforms.length >= 3) {
+                                    _this.endermen.push(new Enderman(platforms[0].x + 50, platforms[0].x + 20, platforms[0].x + platforms[0].width - 20, platforms[0]));
+                                    _this.endermen.push(new Enderman(platforms[1].x + 50, platforms[1].x + 20, platforms[1].x + platforms[1].width - 20, platforms[1]));
+                                    _this.endermen.push(new Enderman(platforms[2].x + 50, platforms[2].x + 20, platforms[2].x + platforms[2].width - 20, platforms[2]));
+                                } else {
+                                    // Fallback if platforms aren't available
+                                    _this.endermen.push(new Enderman(300, 200, 400));
+                                    _this.endermen.push(new Enderman(600, 500, 700));
+                                    _this.endermen.push(new Enderman(900, 800, 1000));
+                                }
+                                
                                 _this.gameState = GAME_STATE.WELCOME; // Start with welcome screen
                                 _this.isGameActive = false; // For backward compatibility
                                 _this.setupControls();
@@ -661,8 +682,8 @@ var Game = /*#__PURE__*/ function() {
                         }
                     }
 
-                    // Update piglins
-                    this.updatePiglins(deltaTime);
+                    // Update endermen
+                    this.updateEndermen(deltaTime);
                     
                     // Check portal collision
                     this.checkPortalCollision();
@@ -932,24 +953,13 @@ var Game = /*#__PURE__*/ function() {
                         console.log('Portal rendered successfully');
                     }
                 }
-                // Render piglins if they exist
-                if (this.piglins) {
+                // Render endermen if they exist
+                if (this.endermen) {
                     this.ctx.save();
                     this.ctx.translate(-this.cameraOffset, 0);
                     
-                    this.piglins.forEach(piglin => {
-                        // Piglin body
-                        this.ctx.fillStyle = '#C2B280'; // Tan color
-                        this.ctx.fillRect(piglin.x, piglin.y, piglin.width, piglin.height);
-                        
-                        // Piglin face
-                        this.ctx.fillStyle = '#8B4513'; // Dark brown
-                        this.ctx.fillRect(piglin.x + 10, piglin.y + 10, 20, 20);
-                        
-                        // Eyes
-                        this.ctx.fillStyle = 'red';
-                        this.ctx.fillRect(piglin.x + 15, piglin.y + 15, 4, 4);
-                        this.ctx.fillRect(piglin.x + 25, piglin.y + 15, 4, 4);
+                    this.endermen.forEach(enderman => {
+                        enderman.render(this.ctx, this.cameraOffset, this.assetLoader);
                     });
                     
                     this.ctx.restore();
@@ -1350,8 +1360,8 @@ var Game = /*#__PURE__*/ function() {
             }
         },
         {
-            key: "handlePiglinCollision",
-            value: function handlePiglinCollision() {
+            key: "handleEndermanCollision",
+            value: function handleEndermanCollision() {
                 if (this.player.hasGoldenBoots) return; // No effect if player has golden boots
                 
                 // Reset player position slightly back to avoid being immediately hit again
@@ -1384,37 +1394,24 @@ var Game = /*#__PURE__*/ function() {
             }
         },
         {
-            key: "updatePiglins",
-            value: function updatePiglins(deltaTime) {
-                if (!this.piglins) return;
+            key: "updateEndermen",
+            value: function updateEndermen(deltaTime) {
+                if (!this.endermen) return;
                 
-                this.piglins.forEach(piglin => {
-                    // Move towards player if not wearing golden boots
-                    if (!this.player.hasGoldenBoots) {
-                        if (piglin.x > this.player.x) {
-                            piglin.x -= piglin.speed;
-                        } else {
-                            piglin.x += piglin.speed;
+                this.endermen.forEach(enderman => {
+                    // Update enderman using its built-in update method
+                    enderman.update(deltaTime);
+                    
+                    // Check collision with player only if not wearing golden boots
+                    if (!this.player.hasGoldenBoots && !this.player.isImmune) {
+                        if (enderman.checkCollision(this.player)) {
+                            this.handleEndermanCollision();
                         }
-                        
-                        // Check collision with player only if not wearing golden boots
-                        if (!this.player.isImmune &&
-                            piglin.x < this.player.x + this.player.width &&
-                            piglin.x + piglin.width > this.player.x &&
-                            piglin.y < this.player.y + this.player.height &&
-                            piglin.y + piglin.height > this.player.y) {
-                            this.handlePiglinCollision();
-                        }
-                    } else {
-                        // If player has golden boots, make piglins move away
-                        const distanceToPlayer = Math.abs(piglin.x - this.player.x);
-                        if (distanceToPlayer < 200) { // Only move away if player is within 200 pixels
-                            if (piglin.x > this.player.x) {
-                                piglin.x += piglin.speed;
-                            } else {
-                                piglin.x -= piglin.speed;
-                            }
-                        }
+                    }
+                    
+                    // Update enderman speed based on gold nuggets collected
+                    if (this.resources && this.resources.goldNuggets) {
+                        enderman.updateSpeed(this.resources.goldNuggets);
                     }
                 });
             }

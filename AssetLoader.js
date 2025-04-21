@@ -199,16 +199,23 @@ export var AssetLoader = /*#__PURE__*/ function() {
             'strings': 'https://play.rosebud.ai/assets/string.gif?LI32',
             'flint': 'https://play.rosebud.ai/assets/flint.png?wYiy',
             'feather': 'https://play.rosebud.ai/assets/feather.png?TRqd',
-            'bg_Sandro': 'https://play.rosebud.ai/assets/bg_Sandro.png?DHOp',
+            'bg_Sandro': './assets/level3/backgroud.png',
             'full body zombie minecraft': 'https://play.rosebud.ai/assets/full body zombie minecraft.png?rfIu',
             'ironOre': 'https://play.rosebud.ai/assets/minecraft-iron-ore-cube-mr3AX6E-600-removebg-preview.png?FUcG',
             'greyCubeBlock': 'https://play.rosebud.ai/assets/grey cube block minecraft.png?ueiM',
             'dave minecraft': 'https://play.rosebud.ai/assets/dave minecraft.png?IPuk',
             'Platform_v2': 'https://play.rosebud.ai/assets/Platform_v2.png?dTgz',
-            'piglin': 'https://play.rosebud.ai/assets/Piglin_BE.webp?cOvn',
             'lava pit': 'https://play.rosebud.ai/assets/lava pit.png?KI7k',
             'steve minecraft with golden boots': 'https://rosebud.ai/assets/steve minecraft with golden boots.png?EWhA',
-            'gold nugget': 'https://rosebud.ai/assets/one gold nugget minecraft.png?qQYy'
+            'gold nugget': 'https://rosebud.ai/assets/one gold nugget minecraft.png?qQYy',
+            'enderman': './assets/level3/enderman.png',
+            // 'enderPearl': './assets/level3/ender_pearl.png',
+            // 'blazeRod': './assets/level3/blaze_rod.png',
+            // 'blazePowder': './assets/level3/blaze_powder.png',
+            // 'enderEye': './assets/level3/ender_eye.png',
+            // 'obsidian': './assets/level3/obsidian.png',
+            // 'crossbow': './assets/level3/crossbow.png',
+            // 'shield': './assets/level3/shield.png'
         };
     }
     _create_class(AssetLoader, [

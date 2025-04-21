@@ -1,4 +1,5 @@
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GAME_STATE } from './constants.js';
+import Enderman from './Endermen.js';
 
 class WelcomeScreen {
     constructor(game, assetLoader) {
@@ -60,6 +61,9 @@ class WelcomeScreen {
         if (this.isPointInButton(mouseX, mouseY, this.startButton)) {
             this.game.gameState = GAME_STATE.PLAYING;
             this.game.audioManager.play('collect', 1.0);
+            
+            // Create endermen when game starts
+            this.createEndermen();
         }
     }
 
@@ -73,6 +77,9 @@ class WelcomeScreen {
         if (this.isPointInButton(touchX, touchY, this.startButton)) {
             this.game.gameState = GAME_STATE.PLAYING;
             this.game.audioManager.play('collect', 1.0);
+            
+            // Create endermen when game starts
+            this.createEndermen();
         }
     }
 
@@ -201,6 +208,25 @@ class WelcomeScreen {
             ctx.beginPath();
             ctx.arc(x, y, 2, 0, Math.PI * 2);
             ctx.fill();
+        }
+    }
+
+    createEndermen() {
+        const platforms = this.game.world.platforms;
+        
+        // Clear any existing endermen
+        this.game.endermen = [];
+        
+        // Create endermen on platforms if available
+        if (platforms && platforms.length >= 3) {
+            this.game.endermen.push(new Enderman(platforms[0].x + 50, platforms[0].x + 20, platforms[0].x + platforms[0].width - 20, platforms[0]));
+            this.game.endermen.push(new Enderman(platforms[1].x + 50, platforms[1].x + 20, platforms[1].x + platforms[1].width - 20, platforms[1]));
+            this.game.endermen.push(new Enderman(platforms[2].x + 50, platforms[2].x + 20, platforms[2].x + platforms[2].width - 20, platforms[2]));
+        } else {
+            // Fallback if platforms aren't available
+            this.game.endermen.push(new Enderman(300, 200, 400));
+            this.game.endermen.push(new Enderman(600, 500, 700));
+            this.game.endermen.push(new Enderman(900, 800, 1000));
         }
     }
 }

@@ -1,4 +1,5 @@
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GAME_STATE } from './constants.js';
+import Enderman from './Endermen.js';
 
 class VictoryScreen {
     constructor(game) {
@@ -144,7 +145,30 @@ class VictoryScreen {
         this.game.player.hasGoldenBoots = false;
         this.game.cameraOffset = 0;
         this.game.craftingPanel.updateResources(this.game.resources);
+        
+        // Create endermen for the new game
+        this.createEndermen();
+        
         this.game.gameState = GAME_STATE.PLAYING;
+    }
+
+    createEndermen() {
+        const platforms = this.game.world.platforms;
+        
+        // Clear any existing endermen
+        this.game.endermen = [];
+        
+        // Create endermen on platforms if available
+        if (platforms && platforms.length >= 3) {
+            this.game.endermen.push(new Enderman(platforms[0].x + 50, platforms[0].x + 20, platforms[0].x + platforms[0].width - 20, platforms[0]));
+            this.game.endermen.push(new Enderman(platforms[1].x + 50, platforms[1].x + 20, platforms[1].x + platforms[1].width - 20, platforms[1]));
+            this.game.endermen.push(new Enderman(platforms[2].x + 50, platforms[2].x + 20, platforms[2].x + platforms[2].width - 20, platforms[2]));
+        } else {
+            // Fallback if platforms aren't available
+            this.game.endermen.push(new Enderman(300, 200, 400));
+            this.game.endermen.push(new Enderman(600, 500, 700));
+            this.game.endermen.push(new Enderman(900, 800, 1000));
+        }
     }
 
     returnToMenu() {
@@ -235,7 +259,7 @@ class VictoryScreen {
         ctx.fillStyle = '#cccccc';
         ctx.font = '16px "Press Start 2P", monospace';
         ctx.fillText('Steve crafted the boots.', CANVAS_WIDTH / 2, storyY + floatOffset);
-        ctx.fillText('The Piglins retreated.', CANVAS_WIDTH / 2, storyY + 30 + floatOffset);
+        ctx.fillText('The Endermen retreated.', CANVAS_WIDTH / 2, storyY + 30 + floatOffset);
         ctx.fillText('The Nether trembled beneath his feet.', CANVAS_WIDTH / 2, storyY + 60 + floatOffset);
 
         // Next level text with glowing blue outline

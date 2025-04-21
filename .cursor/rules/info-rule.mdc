@@ -1,0 +1,10 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Info File
+
+- Always use and maintain the [Info.md](mdc:Info.md) file of all the project changes for the overall summary and navigation.
+- Keep it concise and refined.

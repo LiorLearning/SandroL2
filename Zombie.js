@@ -130,77 +130,86 @@ var Zombie = /*#__PURE__*/ function() {
         {
             key: "render",
             value: function render(ctx, cameraOffset, assetLoader) {
-                // Get camera offset from world
-                var screenX = this.x - cameraOffset;
-                // Don't render if off screen
+                // Skip rendering zombies that are off screen
+                const screenX = this.x - cameraOffset;
                 if (screenX < -this.width || screenX > ctx.canvas.width) {
                     return;
                 }
-                // Save context for rotation during falling
+                
                 ctx.save();
-                // Apply visual effects for falling zombie
+                
+                // Apply rotation when falling
                 if (this.isFalling) {
-                    // Center of zombie for rotation
-                    var centerX = screenX + this.width / 2;
-                    var centerY = this.y + this.height / 2;
-                    // Rotate zombie slightly based on falling velocity
-                    var rotationAngle = Math.min(this.fallVelocity * 0.05, 0.3);
+                    const centerX = screenX + this.width / 2;
+                    const centerY = this.y + this.height / 2;
+                    const rotationAngle = Math.min(this.fallVelocity * 0.05, 0.3);
+                    
                     ctx.translate(centerX, centerY);
-                    ctx.rotate(rotationAngle * this.direction); // Direction affects rotation side
+                    ctx.rotate(rotationAngle * this.direction);
                     ctx.translate(-centerX, -centerY);
                 }
-                // Get zombie texture if available
-                var piglinTexture = assetLoader === null || assetLoader === void 0 ? void 0 : assetLoader.getAsset('piglin');
-                if (piglinTexture) {
-                    // Draw the piglin image instead of rendering shapes
-                    var piglinWidth = this.width * 1.5;
-                    var piglinHeight = this.height * 1.6;
-                    // Calculate piglin position (centered)
-                    var piglinX = screenX - (piglinWidth - this.width) / 2;
-                    var piglinY = this.y - (piglinHeight - this.height);
-                    // Apply scaling and flipping based on direction and animation
+                
+                // Get zombie texture from asset loader
+                const zombieTexture = assetLoader?.getAsset('full body zombie minecraft');
+                
+                if (zombieTexture) {
+                    // Draw the zombie image instead of rendering shapes
+                    const zombieWidth = this.width * 1.5;
+                    const zombieHeight = this.height * 1.6;
+                    
+                    // Calculate zombie position (centered)
+                    const zombieX = screenX - (zombieWidth - this.width) / 2;
+                    const zombieY = this.y - (zombieHeight - this.height);
+                    
                     ctx.save();
-                    // Center of piglin for transformations
-                    var centerX1 = piglinX + piglinWidth / 2;
-                    var centerY1 = piglinY + piglinHeight / 2;
-                    // Apply transformations relative to the center
-                    ctx.translate(centerX1, centerY1);
-                    // Flip horizontally based on direction
+                    
+                    // Center of zombie for transformations
+                    const centerX = zombieX + zombieWidth / 2;
+                    const centerY = zombieY + zombieHeight / 2;
+                    
+                    ctx.translate(centerX, centerY);
+                    
+                    // Flip horizontally if moving left
                     if (this.direction < 0) {
                         ctx.scale(-1, 1);
                     }
-                    // Add slight wobble based on animation frame
-                    var wobbleAngle = Math.sin(this.currentFrame * (Math.PI / 2)) * 0.05;
+                    
+                    // Add slight wobble for walking animation
+                    const wobbleAngle = Math.sin(this.currentFrame * (Math.PI / 2)) * 0.05;
                     ctx.rotate(wobbleAngle);
-                    // When falling, apply additional rotation
+                    
+                    // Add falling rotation if needed
                     if (this.isFalling) {
-                        var fallRotation = Math.min(this.fallVelocity * 0.05, 0.3) * this.direction;
+                        const fallRotation = Math.min(this.fallVelocity * 0.05, 0.3) * this.direction;
                         ctx.rotate(fallRotation);
                     }
-                    // Draw piglin image centered at origin (after transformations)
-                    ctx.drawImage(piglinTexture, -piglinWidth / 2, -piglinHeight / 2, piglinWidth, piglinHeight);
+                    
+                    // Draw zombie image centered at origin (after transformations)
+                    ctx.drawImage(zombieTexture, -zombieWidth / 2, -zombieHeight / 2, zombieWidth, zombieHeight);
+                    
                     ctx.restore();
                 } else {
-                    // Fallback if texture isn't loaded - draw simple zombie shape
-                    ctx.fillStyle = '#F5C242'; // Piglin gold color
+                    // Fallback to simple colored rectangle if texture not available
+                    ctx.fillStyle = '#009900'; // Green color for zombie
                     ctx.fillRect(screenX, this.y, this.width, this.height);
+                    
+                    // Eyes
+                    ctx.fillStyle = 'black';
+                    ctx.fillRect(screenX + 5, this.y + 5, 4, 4);
+                    ctx.fillRect(screenX + 15, this.y + 5, 4, 4);
+                    
+                    // Mouth
+                    ctx.fillRect(screenX + 5, this.y + 15, 14, 2);
                 }
-                // Add "falling" text above zombie if it's falling
-                if (this.isFalling) {
+                
+                // Draw "ouch" text above zombie if hit
+                if (this.isHit) {
                     ctx.fillStyle = 'white';
                     ctx.font = '12px Arial';
                     ctx.textAlign = 'center';
-                    ctx.fillText("Oink!", screenX + this.width / 2, this.y - 25);
-                    // Add falling dust particles if falling
-                    if (this.isFalling && this.fallVelocity > 2) {
-                        ctx.fillStyle = 'rgba(150, 150, 150, 0.5)';
-                        for(var i = 0; i < 3; i++){
-                            var particleSize = 2 + Math.random() * 3;
-                            ctx.fillRect(screenX + Math.random() * this.width, this.y + this.height - 5 + Math.random() * 10, particleSize, particleSize);
-                        }
-                    }
+                    ctx.fillText("Ouch!", screenX + this.width / 2, this.y - 10);
                 }
-                // Restore context after rotation
+                
                 ctx.restore();
             }
         }
