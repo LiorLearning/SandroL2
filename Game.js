@@ -1445,11 +1445,15 @@ var Game = /*#__PURE__*/ function() {
             value: function handleEndermanCollision() {
                 if (this.player.isImmune) return; // Skip if player is already immune
                 
+                // Find collided enderman
+                const collidedEnderman = this.world.checkEndermanCollisions(this.player);
+                if (!collidedEnderman) return;
+                
                 // Take damage
                 this.player.takeDamage(1);
                 
-                // Apply knockback in opposite direction to enderman
-                this.player.velocityX = this.player.x > this.cameraOffset + CANVAS_WIDTH / 2 ? -5 : 5;
+                // Apply knockback in opposite direction of enderman
+                // this.player.velocityX = this.player.x < collidedEnderman.x ? -5 : 5;
                 this.player.velocityY = -5; // Add upward velocity (jump)
                 
                 // Make player immune for 1 second
@@ -2071,6 +2075,10 @@ var Game = /*#__PURE__*/ function() {
             value: function handleBlazeCollision() {
                 if (this.player.isImmune) return; // Skip if player is already immune
                 
+                // Find collided blaze
+                const collidedBlaze = this.world.checkBlazeCollisions(this.player);
+                if (!collidedBlaze) return;
+                
                 // Check if any arrows have active shield
                 let hasShield = false;
                 for (const arrow of this.arrows) {
@@ -2097,8 +2105,8 @@ var Game = /*#__PURE__*/ function() {
                 // Take damage (same as enderman collision)
                 this.player.takeDamage(1);
                 
-                // Apply knockback in opposite direction to blaze
-                this.player.velocityX = this.player.x > this.cameraOffset + CANVAS_WIDTH / 2 ? -5 : 5;
+                // Apply knockback in opposite direction of blaze
+                // this.player.velocityX = this.player.x < collidedBlaze.x ? -5 : 5;
                 this.player.velocityY = -5; // Add upward velocity (jump)
                 
                 // Make player immune for 1 second

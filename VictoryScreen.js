@@ -1,5 +1,6 @@
 import { CANVAS_WIDTH, CANVAS_HEIGHT, GAME_STATE } from './constants.js';
 import Enderman from './Endermen.js';
+import FeedbackForm from './FeedbackForm.js';
 
 class VictoryScreen {
     constructor(game) {
@@ -15,7 +16,8 @@ class VictoryScreen {
             width: 100,
             height: 40,
             text: "⏩ REPLAY",
-            hovered: false
+            hovered: false,
+            visible: false
         };
         
         this.menuButton = {
@@ -24,8 +26,13 @@ class VictoryScreen {
             width: 100,
             height: 40,
             text: "📋 MENU",
-            hovered: false
+            hovered: false,
+            visible: false
         };
+
+        // Initialize the feedback form
+        this.feedbackForm = new FeedbackForm(game);
+        this.showingForm = false;
 
         this.setupListeners();
         this.startTime = Date.now();
@@ -125,10 +132,27 @@ class VictoryScreen {
     show() {
         this.visible = true;
         this.startTime = Date.now();
+        this.showingForm = true;
+        this.replayButton.visible = false;
+        this.menuButton.visible = false;
+        
+        // Show feedback form after a short delay
+        setTimeout(() => {
+            this.feedbackForm.show();
+        }, 1500);
+    }
+
+    // Method to show buttons after feedback form is submitted
+    showButtons() {
+        this.showingForm = false;
+        this.replayButton.visible = true;
+        this.menuButton.visible = true;
+        this.feedbackForm.hide();
     }
 
     hide() {
         this.visible = false;
+        this.feedbackForm.hide();
     }
 
     restartGame() {
@@ -275,9 +299,19 @@ class VictoryScreen {
 
         ctx.restore();
 
-        // Render buttons
-        // this.renderPixelButton(ctx, this.replayButton);
-        this.renderPixelButton(ctx, this.menuButton);
+        // Render buttons if they're visible
+        if (this.replayButton.visible) {
+            this.renderPixelButton(ctx, this.replayButton);
+        }
+        
+        if (this.menuButton.visible) {
+            this.renderPixelButton(ctx, this.menuButton);
+        }
+
+        // Render feedback form if active
+        if (this.showingForm) {
+            this.feedbackForm.render(ctx);
+        }
     }
 
     renderLavaCracks(ctx, time) {
@@ -325,4 +359,4 @@ class VictoryScreen {
     }
 }
 
-export { VictoryScreen as default };
+export default VictoryScreen;
