@@ -10,13 +10,13 @@ class FeedbackForm {
             name: '',
             enjoyment: 5,
             difficulty: 5,
-            feedback: '',
+            nextGameIdeas: '',
             submitted: false
         };
         
         // Form dimensions
         this.width = 400;
-        this.height = 360;
+        this.height = 440; // Increased height to accommodate new field
         this.x = CANVAS_WIDTH / 2 - this.width / 2;
         this.y = CANVAS_HEIGHT / 2 - this.height / 2;
         
@@ -52,6 +52,16 @@ class FeedbackForm {
             min: 1,
             max: 10,
             active: false
+        };
+
+        // Next game ideas input field
+        this.nextGameField = {
+            x: this.x + 30,
+            y: this.y + 290,
+            width: this.width - 60,
+            height: 60,
+            focused: false,
+            text: ''
         };
         
         // Submit button
@@ -94,6 +104,7 @@ class FeedbackForm {
         
         // Check input field hover
         this.nameField.hovered = this.isPointInRect(mouseX, mouseY, this.nameField);
+        this.nextGameField.hovered = this.isPointInRect(mouseX, mouseY, this.nextGameField);
         
         // Check sliders hover/drag
         this.enjoymentSlider.hovered = this.isPointInRect(mouseX, mouseY, this.enjoymentSlider);
@@ -129,8 +140,16 @@ class FeedbackForm {
         // Handle name field click
         if (this.isPointInRect(mouseX, mouseY, this.nameField)) {
             this.nameField.focused = true;
-        } else {
+            this.nextGameField.focused = false;
+        } 
+        // Handle next game ideas field click
+        else if (this.isPointInRect(mouseX, mouseY, this.nextGameField)) {
+            this.nextGameField.focused = true;
             this.nameField.focused = false;
+        }
+        else {
+            this.nameField.focused = false;
+            this.nextGameField.focused = false;
         }
         
         // Handle enjoyment slider click
@@ -174,8 +193,16 @@ class FeedbackForm {
         // Handle input field touch
         if (this.isPointInRect(touchX, touchY, this.nameField)) {
             this.nameField.focused = true;
-        } else {
+            this.nextGameField.focused = false;
+        } 
+        // Handle next game ideas field touch
+        else if (this.isPointInRect(touchX, touchY, this.nextGameField)) {
+            this.nextGameField.focused = true;
             this.nameField.focused = false;
+        }
+        else {
+            this.nameField.focused = false;
+            this.nextGameField.focused = false;
         }
         
         // Handle enjoyment slider touch
@@ -199,22 +226,57 @@ class FeedbackForm {
     }
     
     handleKey(event) {
-        if (!this.visible || !this.nameField.focused) return;
+        if (!this.visible) return;
+        
+        let activeField = null;
+        if (this.nameField.focused) {
+            activeField = this.nameField;
+        } else if (this.nextGameField.focused) {
+            activeField = this.nextGameField;
+        }
+        
+        if (!activeField) return;
         
         if (event.key.length === 1) {
-            // Add character to name field
-            if (this.nameField.text.length < 20) { // Limit name length
-                this.nameField.text += event.key;
-                this.formData.name = this.nameField.text;
+            // Add character to field
+            const maxLength = activeField === this.nameField ? 20 : 100; // Longer for next game ideas
+            if (activeField.text.length < maxLength) {
+                activeField.text += event.key;
+                if (activeField === this.nameField) {
+                    this.formData.name = activeField.text;
+                } else if (activeField === this.nextGameField) {
+                    this.formData.nextGameIdeas = activeField.text;
+                }
             }
         } else if (event.key === 'Backspace') {
             // Remove last character
-            this.nameField.text = this.nameField.text.slice(0, -1);
-            this.formData.name = this.nameField.text;
+            activeField.text = activeField.text.slice(0, -1);
+            if (activeField === this.nameField) {
+                this.formData.name = activeField.text;
+            } else if (activeField === this.nextGameField) {
+                this.formData.nextGameIdeas = activeField.text;
+            }
         } else if (event.key === 'Enter') {
+            // For next game field, add a line break on Shift+Enter
+            if (event.shiftKey && activeField === this.nextGameField) {
+                if (activeField.text.length < 90) { // Ensure we don't exceed max length
+                    activeField.text += '\n';
+                    this.formData.nextGameIdeas = activeField.text;
+                }
+            } 
             // Submit form if name is not empty
-            if (this.nameField.text.trim() !== '') {
+            else if (this.nameField.text.trim() !== '') {
                 this.submitForm();
+            }
+        } else if (event.key === 'Tab') {
+            // Toggle between input fields
+            event.preventDefault();
+            if (this.nameField.focused) {
+                this.nameField.focused = false;
+                this.nextGameField.focused = true;
+            } else if (this.nextGameField.focused) {
+                this.nextGameField.focused = false;
+                this.nameField.focused = true;
             }
         }
     }
@@ -237,7 +299,8 @@ class FeedbackForm {
             const formResult = await saveFormSubmission({
                 name: this.formData.name,
                 enjoyment_rating: this.formData.enjoyment,
-                difficulty_rating: this.formData.difficulty
+                difficulty_rating: this.formData.difficulty,
+                next_game_ideas: this.formData.nextGameIdeas
             });
             
             if (userResult.data && formResult.data) {
@@ -358,6 +421,46 @@ class FeedbackForm {
         ctx.fillText(this.difficultySlider.value.toString(), 
                      this.difficultySlider.x + this.difficultySlider.width + 25, 
                      this.difficultySlider.y + this.difficultySlider.height / 2 + 5);
+        
+        // Draw next game ideas field
+        ctx.fillStyle = this.nextGameField.focused ? '#ffffff' : '#dddddd';
+        ctx.fillRect(this.nextGameField.x, this.nextGameField.y, this.nextGameField.width, this.nextGameField.height);
+        ctx.fillStyle = '#222222';
+        ctx.font = '16px "Press Start 2P", monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('What would you like in the next game?', this.nextGameField.x, this.nextGameField.y - 10);
+        
+        // Handle text wrapping for next game ideas
+        if (this.nextGameField.text || this.nextGameField.focused) {
+            ctx.font = '14px "Press Start 2P", monospace';
+            const maxWidth = this.nextGameField.width - 20;
+            const lineHeight = 18;
+            const words = (this.nextGameField.text || (this.nextGameField.focused ? '|' : 'Click to type...')).split(' ');
+            let line = '';
+            let y = this.nextGameField.y + 20;
+            
+            for (let i = 0; i < words.length; i++) {
+                const testLine = line + words[i] + ' ';
+                const metrics = ctx.measureText(testLine);
+                
+                if (metrics.width > maxWidth && i > 0) {
+                    ctx.fillText(line, this.nextGameField.x + 10, y);
+                    line = words[i] + ' ';
+                    y += lineHeight;
+                    
+                    // Check if we need to stop rendering due to field height
+                    if (y > this.nextGameField.y + this.nextGameField.height - 10) {
+                        break;
+                    }
+                } else {
+                    line = testLine;
+                }
+            }
+            
+            ctx.fillText(line, this.nextGameField.x + 10, y);
+        } else {
+            ctx.fillText('Click to type...', this.nextGameField.x + 10, this.nextGameField.y + 20);
+        }
         
         // Draw submit button if not submitted
         if (!this.formData.submitted) {
