@@ -24,7 +24,7 @@ class FeedbackForm {
         this.overlay.style.position = 'fixed';
         this.overlay.style.top = '0';
         this.overlay.style.left = '0';
-        this.overlay.style.width = '100%';
+        this.overlay.style.width = '90%';
         this.overlay.style.height = '100%';
         this.overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
         this.overlay.style.display = 'none';
@@ -61,7 +61,7 @@ class FeedbackForm {
         const chapterInput = document.createElement('input');
         chapterInput.type = 'text';
         chapterInput.id = 'chapter-name';
-        chapterInput.style.width = '100%';
+        chapterInput.style.width = '90%';
         chapterInput.style.padding = '10px';
         chapterInput.style.marginTop = '5px';
         chapterInput.style.marginBottom = '15px';
@@ -84,7 +84,7 @@ class FeedbackForm {
         const villainInput = document.createElement('input');
         villainInput.type = 'text';
         villainInput.id = 'villain';
-        villainInput.style.width = '100%';
+        villainInput.style.width = '90%';
         villainInput.style.padding = '10px';
         villainInput.style.marginTop = '5px';
         villainInput.style.marginBottom = '15px';
@@ -107,7 +107,7 @@ class FeedbackForm {
         const characterInput = document.createElement('input');
         characterInput.type = 'text';
         characterInput.id = 'character';
-        characterInput.style.width = '100%';
+        characterInput.style.width = '90%';
         characterInput.style.padding = '10px';
         characterInput.style.marginTop = '5px';
         characterInput.style.marginBottom = '15px';
@@ -130,7 +130,7 @@ class FeedbackForm {
         const locationInput = document.createElement('input');
         locationInput.type = 'text';
         locationInput.id = 'location';
-        locationInput.style.width = '100%';
+        locationInput.style.width = '90%';
         locationInput.style.padding = '10px';
         locationInput.style.marginTop = '5px';
         locationInput.style.marginBottom = '25px';
