@@ -1,5 +1,4 @@
 import Player from './Player.js';
-
 import World from './World.js';
 import { CraftingPanel } from './CraftingPanel.js';
 import TouchControls from './TouchControls.js';
@@ -259,6 +258,12 @@ var Game = /*#__PURE__*/ function() {
 
         // Initialize
         this.initializeGame(container);
+
+        // Add new properties for level 4 dialog
+        this.level4StartTime = 0;
+        this.showLevel4Dialog = false;
+        this.level4DialogInput = '';
+        this.level4Unlocked = false;
     }
     _create_class(Game, [
         {
@@ -470,6 +475,48 @@ var Game = /*#__PURE__*/ function() {
                     case 'e':
                         this.tryCollectResource();
                         break;
+                    case 'f':
+                        this.tryThrowHammer();
+                        break;
+                }
+
+                // Handle level 4 dialog input
+                if (this.showLevel4Dialog && !this.level4Unlocked) {
+                    if (e.key === 'Enter') {
+                        if (this.level4DialogInput === 'SandroL4') {
+                            this.level4Unlocked = true;
+                            this.showLevel4Dialog = false;
+                            this.floatingTexts.push(new FloatingText(
+                                "Level 4 Unlocked!", 
+                                this.player.x, 
+                                this.player.y - 60,
+                                3000,
+                                { 
+                                    color: '#FFD700',
+                                    fontSize: 24,
+                                    centered: true
+                                }
+                            ));
+                        } else {
+                            this.level4DialogInput = '';
+                            this.floatingTexts.push(new FloatingText(
+                                "Incorrect code!", 
+                                this.player.x, 
+                                this.player.y - 60,
+                                2000,
+                                { 
+                                    color: '#FF0000',
+                                    fontSize: 20,
+                                    centered: true
+                                }
+                            ));
+                        }
+                    } else if (e.key === 'Backspace') {
+                        this.level4DialogInput = this.level4DialogInput.slice(0, -1);
+                    } else if (e.key.length === 1 && /[a-zA-Z0-9]/.test(e.key)) {
+                        this.level4DialogInput += e.key;
+                    }
+                    return;
                 }
             }
         },
@@ -490,11 +537,6 @@ var Game = /*#__PURE__*/ function() {
         {
             key: "tryCollectResource",
             value: function tryCollectResource() {
-                // Check if we should throw the hammer instead
-                if (this.tryThrowHammer()) {
-                    return; // Hammer thrown, early exit
-                }
-                
                 // First try mining (which now also handles resource collection)
                 if (this.tryMining()) {
                     return; // Mining action was handled
@@ -834,7 +876,7 @@ var Game = /*#__PURE__*/ function() {
                                 hammer.triggerHitEffect();
                                 
                                 // Deal 50 damage to the enderman
-                                const damageAmount = 50;
+                                const damageAmount = 34;
                                 const defeated = enderman.takeDamage(damageAmount);
                                 
                                 // Play hit sound
@@ -844,7 +886,7 @@ var Game = /*#__PURE__*/ function() {
                                 this.applyScreenShake(4);
                                 
                                 // Show hit message
-                                this.floatingTexts.push(new FloatingText("-50% Health!", hammer.x, hammer.y - 20));
+                                this.floatingTexts.push(new FloatingText("-1/3rd Health!", hammer.x, hammer.y - 20, 1000, { color: '#FF0000' }));
                                 
                                 // If enderman is defeated, remove it and spawn enderpearl
                                 if (defeated) {
@@ -974,11 +1016,22 @@ var Game = /*#__PURE__*/ function() {
                     return;
                 }
 
+                // Check if it's time to show level 4 dialog (10 seconds after entering portal)
+                if (this.enteredPortal && !this.showLevel4Dialog && !this.level4Unlocked) {
+                    const timeSinceLevel4Start = Date.now() - this.level4StartTime;
+                    if (timeSinceLevel4Start >= 10000) { // 10 seconds
+                        this.showLevel4Dialog = true;
+                        // Play a significant sound effect to indicate the end of gameplay
+                        this.audioManager.play('collect', 2.0); // Play at double speed for emphasis
+                    }
+                }
+
                 // Batch state checks to minimize branching
                 const isPlaying = this.gameState === GAME_STATE.PLAYING;
                 const isQuiz = this.gameState === GAME_STATE.QUIZ;
 
-                if (isPlaying) {
+                // Skip game updates if level 4 dialog is showing
+                if (isPlaying && !this.showLevel4Dialog) {
                     // Process game updates in logical order
                     if (this.enteredPortal) {
                         // Update blazes after entering portal
@@ -1362,6 +1415,11 @@ var Game = /*#__PURE__*/ function() {
                     this.hammers.forEach(hammer => {
                         hammer.render(this.ctx, this.cameraOffset);
                     });
+                }
+
+                // Render level 4 dialog if needed
+                if (this.showLevel4Dialog && !this.level4Unlocked) {
+                    this.renderLevel4Dialog();
                 }
             }
         },
@@ -1757,13 +1815,36 @@ var Game = /*#__PURE__*/ function() {
                     // Play portal entry sound
                     this.audioManager.play('collect', 1.8);
                     
+                    // Create confetti celebration
+                    this.createConfetti(this.player.x, this.player.y - 50, 100);
+                    
                     // Add floating text
                     this.floatingTexts.push(
                         new FloatingText(
-                            "Level complete!", 
+                            "Level 3 Complete!", 
                             this.player.x, 
                             this.player.y - 60,
-                            2000
+                            3000,
+                            { 
+                                color: '#FFD700',
+                                fontSize: 24,
+                                centered: true
+                            }
+                        )
+                    );
+                    
+                    // Add a second message
+                    this.floatingTexts.push(
+                        new FloatingText(
+                            "Entering Level 4...", 
+                            this.player.x, 
+                            this.player.y - 90,
+                            3000,
+                            { 
+                                color: '#FFA500',
+                                fontSize: 20,
+                                centered: true
+                            }
                         )
                     );
                     
@@ -1814,6 +1895,9 @@ var Game = /*#__PURE__*/ function() {
                     
                     // Reset resource requirements for Stage 2
                     this.updateResourceRequirements();
+                    
+                    // Set level 4 start time
+                    this.level4StartTime = Date.now();
                     
                     return true;
                 }
@@ -2780,6 +2864,95 @@ var Game = /*#__PURE__*/ function() {
                 
                 // Play a special auto-collect sound with higher pitch
                 this.audioManager.play('collect', 1.0 + Math.random() * 0.3);
+            }
+        },
+        {
+            key: "createConfetti",
+            value: function createConfetti(x, y, count = 50) {
+                const colors = ['#FFD700', '#FF69B4', '#87CEEB', '#98FB98', '#FFA07A', '#DDA0DD'];
+                const symbols = ['✦', '✧', '★', '☆', '✴', '✩', '✫', '*'];
+                
+                for (let i = 0; i < count; i++) {
+                    const symbol = symbols[Math.floor(Math.random() * symbols.length)];
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    const size = 12 + Math.random() * 8;
+                    const duration = 2000 + Math.random() * 1000;
+                    
+                    const confetti = new FloatingText(
+                        symbol,
+                        x + (Math.random() - 0.5) * 100,
+                        y + (Math.random() - 0.5) * 100,
+                        duration,
+                        {
+                            color: color,
+                            fontSize: size,
+                            velocityY: -2 - Math.random() * 3,
+                            velocityX: (Math.random() - 0.5) * 4,
+                            gravity: 0.1,
+                            rotation: Math.random() * 360
+                        }
+                    );
+                    
+                    this.floatingTexts.push(confetti);
+                }
+            }
+        },
+        {
+            key: "renderLevel4Dialog",
+            value: function renderLevel4Dialog() {
+                // Save current context state
+                this.ctx.save();
+                
+                // Draw semi-transparent background
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                this.ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+                
+                // Draw dialog box
+                const dialogWidth = 400;
+                const dialogHeight = 200;
+                const dialogX = (CANVAS_WIDTH - dialogWidth) / 2;
+                const dialogY = (CANVAS_HEIGHT - dialogHeight) / 2;
+                
+                // Draw dialog background
+                this.ctx.fillStyle = '#1A1A1A';
+                this.ctx.fillRect(dialogX, dialogY, dialogWidth, dialogHeight);
+                
+                // Draw border
+                this.ctx.strokeStyle = '#FFD700';
+                this.ctx.lineWidth = 2;
+                this.ctx.strokeRect(dialogX, dialogY, dialogWidth, dialogHeight);
+                
+                // Draw title
+                this.ctx.fillStyle = '#FFD700';
+                this.ctx.font = 'bold 24px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('Level 4 Locked', CANVAS_WIDTH / 2, dialogY + 40);
+                
+                // Draw message
+                this.ctx.fillStyle = '#FFFFFF';
+                this.ctx.font = '16px Arial';
+                this.ctx.fillText('This level is locked and requires a code to unlock.', CANVAS_WIDTH / 2, dialogY + 80);
+                this.ctx.fillText('Please enter the code:', CANVAS_WIDTH / 2, dialogY + 110);
+                
+                // Draw input box
+                const inputWidth = 200;
+                const inputHeight = 30;
+                const inputX = (CANVAS_WIDTH - inputWidth) / 2;
+                const inputY = dialogY + 130;
+                
+                this.ctx.fillStyle = '#333333';
+                this.ctx.fillRect(inputX, inputY, inputWidth, inputHeight);
+                this.ctx.strokeStyle = '#FFD700';
+                this.ctx.strokeRect(inputX, inputY, inputWidth, inputHeight);
+                
+                // Draw input text
+                this.ctx.fillStyle = '#FFFFFF';
+                this.ctx.font = '16px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(this.level4DialogInput || 'Enter code...', CANVAS_WIDTH / 2, inputY + 20);
+                
+                // Restore context
+                this.ctx.restore();
             }
         },
     ]);

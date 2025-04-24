@@ -184,21 +184,6 @@ var Enderman = /*#__PURE__*/ function() {
                     ctx.globalAlpha = 1.0;
                 }
                 
-                // Show damage text if needed
-                if (this.isDamaged) {
-                    ctx.fillStyle = 'red';
-                    ctx.font = 'bold 14px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText("-50% Health", screenX + this.width / 2, this.y - 15);
-                }
-                
-                if (this.isFalling) {
-                    ctx.fillStyle = 'white';
-                    ctx.font = '12px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.fillText("Vwoop!", screenX + this.width / 2, this.y - 25);
-                }
-                
                 // Show health bar
                 this._renderHealthBar(ctx, screenX);
                 

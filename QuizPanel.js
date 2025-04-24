@@ -43,6 +43,7 @@ var QuizPanel = /*#__PURE__*/ function() {
         this.showingFeedback = false;
         this.feedbackTimer = 0;
         this.buttonAnimations = [0, 0, 0, 0]; // Animation progress for each button
+        this.answerSelected = false; // New flag to track if an answer has been selected
 
         // Quiz question bank - educational questions on various topic
         this.quizQuestions = [
@@ -244,7 +245,7 @@ var QuizPanel = /*#__PURE__*/ function() {
         {
             key: "handleClick",
             value: function handleClick(event) {
-                if (!this.visible) return;
+                if (!this.visible || this.answerSelected) return; // Prevent clicks if answer already selected
                 const rect = this.game.canvas.getBoundingClientRect();
                 const mouseX = (event.clientX - rect.left) * (this.game.canvas.width / rect.width);
                 const mouseY = (event.clientY - rect.top) * (this.game.canvas.height / rect.height);
@@ -261,6 +262,7 @@ var QuizPanel = /*#__PURE__*/ function() {
                             mouseY >= buttonY && 
                             mouseY <= buttonY + buttonHeight) {
                             this.selectedAnswer = i;
+                            this.answerSelected = true; // Set flag when answer is selected
                             this.checkAnswer();
                             break;
                         }
@@ -271,7 +273,7 @@ var QuizPanel = /*#__PURE__*/ function() {
         {
             key: "handleTouch",
             value: function handleTouch(event) {
-                if (!this.visible) return;
+                if (!this.visible || this.answerSelected) return; // Prevent touches if answer already selected
                 event.preventDefault();
                 const rect = this.game.canvas.getBoundingClientRect();
                 const touch = event.touches[0];
@@ -290,6 +292,7 @@ var QuizPanel = /*#__PURE__*/ function() {
                             touchY >= buttonY && 
                             touchY <= buttonY + buttonHeight) {
                             this.selectedAnswer = i;
+                            this.answerSelected = true; // Set flag when answer is selected
                             this.checkAnswer();
                             break;
                         }
@@ -308,6 +311,7 @@ var QuizPanel = /*#__PURE__*/ function() {
                 this.showingFeedback = false;
                 this.currentMiningSpot = miningSpot;
                 this.buttonAnimations = [0, 0, 0, 0];
+                this.answerSelected = false; // Reset the answer selected flag
             }
         },
         {
@@ -316,6 +320,7 @@ var QuizPanel = /*#__PURE__*/ function() {
                 this.visible = false;
                 this.currentQuiz = null;
                 this.selectedAnswer = null;
+                this.answerSelected = false; // Reset the answer selected flag
             }
         },
         {

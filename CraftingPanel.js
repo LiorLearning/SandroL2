@@ -15,10 +15,10 @@ export class CraftingPanel {
         // Resource requirements
         this.requirements = {
             stage1: {
-                crossbow: 1,
-                shield: 1,
+                crossbow: 4,
+                shield: 4,
                 obsidian: 4,
-                enderpearl: 2
+                enderpearl: 4
             },
             stage2: {
                 blazerod: 3,
