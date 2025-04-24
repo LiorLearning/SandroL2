@@ -1,4 +1,5 @@
 import Player from './Player.js';
+
 import World from './World.js';
 import { CraftingPanel } from './CraftingPanel.js';
 import TouchControls from './TouchControls.js';
