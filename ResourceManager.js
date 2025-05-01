@@ -80,6 +80,8 @@ export var ResourceManager = /*#__PURE__*/ function() {
             enderpearl: 0,
             blazerod: 0 // Add blaze rod resource
         };
+        // Track total resources collected for endermen speed
+        this.totalResourcesCollected = 0;
         // Simplified crafting requirements
         this.craftingRequirements = {
             goldenBoots: {
@@ -131,6 +133,7 @@ export var ResourceManager = /*#__PURE__*/ function() {
                     return false;
                 }
                 this.resources[type] += amount;
+                this.totalResourcesCollected += amount;
                 this.highlightResource(type);
                 // Create floating text animation
                 var text = "+".concat(amount, " ").concat(type);
@@ -342,6 +345,12 @@ export var ResourceManager = /*#__PURE__*/ function() {
                 }
                 
                 return true;
+            }
+        },
+        {
+            key: "getTotalResourcesCollected",
+            value: function getTotalResourcesCollected() {
+                return this.totalResourcesCollected;
             }
         }
     ]);

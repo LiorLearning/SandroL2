@@ -1382,33 +1382,37 @@ var Game = /*#__PURE__*/ function() {
         {
             key: "renderEndermanSpeed",
             value: function renderEndermanSpeed() {
-                // Display enderman speed in top left corner
+                // Display enderman speed in bottom right corner
                 const baseSpeed = 0.5;
                 let currentSpeed = baseSpeed;
                 
-                // Get resources from resource manager
-                const resources = this.resourceManager.getResources();
-                
-                // Calculate current speed based on enderpearls collected
-                if (resources && resources.enderpearl !== undefined) {
-                    const enderpearlsCollected = resources.enderpearl;
-                    const speedIncreases = Math.floor(enderpearlsCollected / 2);
-                    currentSpeed = Math.min(baseSpeed + speedIncreases * 0.1, 1.2);
+                // Get total resources collected
+                if (this.resourceManager) {
+                    const totalResources = this.resourceManager.getTotalResourcesCollected();
+                    const speedIncreases = Math.floor(totalResources / 2);
+                    currentSpeed = Math.min(baseSpeed + speedIncreases * 0.4, 1.2);
                 }
                 
+                // Calculate position for bottom right corner
+                const boxWidth = 170;
+                const boxHeight = 30;
+                const margin = 10;
+                const boxX = this.ctx.canvas.width - boxWidth - margin;
+                const boxY = this.ctx.canvas.height - boxHeight - margin;
+                
                 // Draw background box
-                // this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                // this.ctx.fillRect(10, 10, 170, 30);
-                // this.ctx.strokeStyle = '#AA55FF'; // Purple for enderman
-                // this.ctx.lineWidth = 2;
-                // this.ctx.strokeRect(10, 10, 170, 30);
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                this.ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+                this.ctx.strokeStyle = '#AA55FF'; // Purple for enderman
+                this.ctx.lineWidth = 2;
+                this.ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
                 
                 // Draw text
-                // this.ctx.fillStyle = '#FFFFFF';
-                // this.ctx.font = '16px Arial';
-                // this.ctx.textAlign = 'left';
-                // this.ctx.textBaseline = 'middle';
-                // this.ctx.fillText(`Enderman Speed: ${currentSpeed.toFixed(1)}`, 20, 25);
+                this.ctx.fillStyle = '#FFFFFF';
+                this.ctx.font = '16px Arial';
+                this.ctx.textAlign = 'left';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText(`Enderman Speed: ${currentSpeed.toFixed(1)}`, boxX + 10, boxY + boxHeight/2);
             }
         },
         {

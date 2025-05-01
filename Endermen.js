@@ -55,8 +55,8 @@ var Enderman = /*#__PURE__*/ function() {
             key: "updateSpeed",
             value: function updateSpeed(enderPearls) {
                 this.enderPearlsCollected = enderPearls;
-                var speedIncreases = Math.floor(this.enderPearlsCollected / 6);
-                this.speed = this.baseSpeed + speedIncreases * 0.15;
+                var speedIncreases = Math.floor(this.enderPearlsCollected / 2);
+                this.speed = this.baseSpeed + speedIncreases * 0.5;
             }
         },
         {

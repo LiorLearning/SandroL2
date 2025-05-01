@@ -1008,9 +1008,10 @@ var World = /*#__PURE__*/ function() {
                         const enderman = this.endermen[i];
                         enderman.update(deltaTime);
                         
-                        // Update speed based on collected gold nuggets
-                        if (this.game.resources && this.game.resources.goldNuggets !== undefined) {
-                            enderman.updateSpeed(this.game.resources.goldNuggets);
+                        // Update speed based on total resources collected
+                        if (this.game.resourceManager) {
+                            const totalResources = this.game.resourceManager.getTotalResourcesCollected();
+                            enderman.updateSpeed(totalResources);
                         }
                     }
                 }
