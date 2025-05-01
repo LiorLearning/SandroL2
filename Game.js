@@ -1382,6 +1382,9 @@ var Game = /*#__PURE__*/ function() {
         {
             key: "renderEndermanSpeed",
             value: function renderEndermanSpeed() {
+                // Only render in stage 1 (before entering portal)
+                if (this.enteredPortal) return;
+                
                 // Display enderman speed in bottom right corner
                 const baseSpeed = 0.5;
                 let currentSpeed = baseSpeed;
@@ -1827,40 +1830,11 @@ var Game = /*#__PURE__*/ function() {
         {
             key: "replaceEndermanWithBlazes",
             value: function replaceEndermanWithBlazes() {
-                // Get existing enderman positions
-                const blazePositions = [];
-                
-                // Convert endermen to blaze positions
-                for (const enderman of this.world.endermen) {
-                    blazePositions.push({
-                        x: enderman.x,
-                        patrolStart: enderman.patrolStart,
-                        patrolEnd: enderman.patrolEnd,
-                        platform: enderman.platform
-                    });
-                }
-                
-                // Clear endermen array and create blazes
-                this.world.blazes = [];
-                
-                // Create blazes at endermen positions
-                for (const pos of blazePositions) {
-                    const blaze = new Blaze(
-                        pos.x, 
-                        pos.patrolStart, 
-                        pos.patrolEnd, 
-                        pos.platform
-                    );
-                    this.world.blazes.push(blaze);
-                }
-                
-                // for (const pos of additionalBlazes) {
-                //     const blaze = new Blaze(pos.x, pos.patrolStart, pos.patrolEnd);
-                //     this.world.blazes.push(blaze);
-                // }
-                
-                // Clear endermen array since we're now using blazes
+                // Clear endermen array since we're moving to stage 2
                 this.world.endermen = [];
+                
+                // Generate new blazes at their own positions
+                this.world.generateBlazes();
                 
                 // Show message about new enemies
                 this.floatingTexts.push(

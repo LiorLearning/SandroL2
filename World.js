@@ -1026,6 +1026,74 @@ var World = /*#__PURE__*/ function() {
             }
         },
         {
+            key: "generateBlazes",
+            value: function generateBlazes() {
+                // Clear any existing blazes
+                this.blazes = [];
+                
+                // Add blazes on platforms
+                // Only place one blaze per platform, skipping the ground platform (index 0)
+                for (let i = 1; i < this.platforms.length; i++) {
+                    const platform = this.platforms[i];
+                    const patrolStart = platform.x + 20;
+                    const patrolEnd = platform.x + platform.width - 20;
+                    
+                    // Add a blaze to patrol this platform
+                    this.blazes.push(new Blaze(
+                        platform.x + platform.width / 2, 
+                        patrolStart, 
+                        patrolEnd, 
+                        platform
+                    ));
+                }
+                
+                // Add ground-level blazes at different positions
+                const groundBlazePositions = [
+                    {
+                        x: 400,
+                        patrolStart: 300,
+                        patrolEnd: 600
+                    },
+                    {
+                        x: 900,
+                        patrolStart: 800,
+                        patrolEnd: 1100
+                    },
+                    {
+                        x: 1500,
+                        patrolStart: 1400,
+                        patrolEnd: 1750
+                    },
+                    {
+                        x: 2200,
+                        patrolStart: 2050,
+                        patrolEnd: 2350
+                    },
+                    {
+                        x: 2800,
+                        patrolStart: 2650,
+                        patrolEnd: 3000
+                    },
+                    {
+                        x: 3400,
+                        patrolStart: 3250,
+                        patrolEnd: 3550
+                    }
+                ];
+                
+                // Create blaze instances on ground level
+                for (const pos of groundBlazePositions) {
+                    this.blazes.push(new Blaze(
+                        pos.x,
+                        pos.patrolStart,
+                        pos.patrolEnd
+                    ));
+                }
+                
+                return this.blazes;
+            }
+        },
+        {
             key: "checkBlazeCollisions",
             value: function checkBlazeCollisions(player) {
                 for (const blaze of this.blazes) {

@@ -170,28 +170,50 @@ class VictoryScreen {
         this.game.cameraOffset = 0;
         this.game.craftingPanel.updateResources(this.game.resources);
         
-        // Create endermen for the new game
-        this.createEndermen();
+        // Reset the world with endermen for stage 1
+        this.resetGameEntities();
         
         this.game.gameState = GAME_STATE.PLAYING;
     }
 
-    createEndermen() {
-        const platforms = this.game.world.platforms;
+    resetGameEntities() {
+        // Clear existing enemies
+        this.game.world.endermen = [];
+        this.game.world.blazes = [];
         
-        // Clear any existing endermen
-        this.game.endermen = [];
+        // Generate endermen for stage 1
+        this.generateEndermen();
+    }
+
+    generateEndermen() {
+        const platforms = this.game.world.platforms;
         
         // Create endermen on platforms if available
         if (platforms && platforms.length >= 3) {
-            this.game.endermen.push(new Enderman(platforms[0].x + 50, platforms[0].x + 20, platforms[0].x + platforms[0].width - 20, platforms[0]));
-            this.game.endermen.push(new Enderman(platforms[1].x + 50, platforms[1].x + 20, platforms[1].x + platforms[1].width - 20, platforms[1]));
-            this.game.endermen.push(new Enderman(platforms[2].x + 50, platforms[2].x + 20, platforms[2].x + platforms[2].width - 20, platforms[2]));
+            for (let i = 1; i < Math.min(platforms.length, 7); i++) {
+                const platform = platforms[i];
+                this.game.world.endermen.push(new Enderman(
+                    platform.x + platform.width / 2,
+                    platform.x + 20,
+                    platform.x + platform.width - 20,
+                    platform
+                ));
+            }
+            
+            // Add ground-level endermen
+            const groundPositions = [400, 900, 1500, 2200, 2800, 3400];
+            for (const x of groundPositions) {
+                this.game.world.endermen.push(new Enderman(
+                    x,
+                    x - 100,
+                    x + 100
+                ));
+            }
         } else {
             // Fallback if platforms aren't available
-            this.game.endermen.push(new Enderman(300, 200, 400));
-            this.game.endermen.push(new Enderman(600, 500, 700));
-            this.game.endermen.push(new Enderman(900, 800, 1000));
+            this.game.world.endermen.push(new Enderman(300, 200, 400));
+            this.game.world.endermen.push(new Enderman(600, 500, 700));
+            this.game.world.endermen.push(new Enderman(900, 800, 1000));
         }
     }
 
