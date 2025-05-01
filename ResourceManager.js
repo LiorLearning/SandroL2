@@ -70,14 +70,14 @@ export var ResourceManager = /*#__PURE__*/ function() {
         _class_call_check(this, ResourceManager);
         this.game = game;
         this.resources = {
-            sticks: 5,
-            strings: 5,
-            flint: 5,
-            feather: 5,
-            crossbow: 5,
-            shield: 5,
-            obsidian: 5,
-            enderpearl: 1,
+            sticks: 0,
+            strings: 0,
+            flint: 0,
+            feather: 0,
+            crossbow: 0,
+            shield: 0,
+            obsidian: 0,
+            enderpearl: 0,
             blazerod: 0 // Add blaze rod resource
         };
         // Track total resources collected for endermen speed
